@@ -1,30 +1,31 @@
-import { Brain } from 'lucide-react';
+"use client";
+
+import { Sparkles } from "lucide-react";
 
 export function Header() {
   return (
-    <header className="border-b border-border bg-card">
-      <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
+    <header className="sticky top-0 z-50 backdrop-blur-xl bg-background/80 border-b border-border-subtle">
+      <div className="max-w-5xl mx-auto px-6 h-16 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="p-2 rounded-lg bg-step-draft/10">
-            <Brain className="w-6 h-6 text-step-draft" />
+          <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-accent to-purple-500 flex items-center justify-center">
+            <Sparkles className="w-5 h-5 text-white" />
           </div>
           <div>
-            <h1 className="text-xl font-mono font-semibold text-primary">
+            <h1 className="text-lg font-semibold text-text tracking-tight">
               ThinkTwice
             </h1>
-            <p className="text-xs text-muted">
-              AI that catches its own mistakes
-            </p>
           </div>
         </div>
-        <a
-          href="https://github.com"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-muted hover:text-secondary transition-colors text-sm"
-        >
-          View Source
-        </a>
+        <nav className="flex items-center gap-1">
+          <a
+            href="https://github.com/apattichis/thinktwice"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="px-3 py-2 text-sm text-text-secondary hover:text-text transition-colors rounded-lg hover:bg-surface-elevated"
+          >
+            GitHub
+          </a>
+        </nav>
       </div>
     </header>
   );

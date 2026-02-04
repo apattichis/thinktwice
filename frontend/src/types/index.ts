@@ -1,18 +1,12 @@
-export type InputMode = 'question' | 'claim' | 'url';
+export type InputMode = "question" | "claim" | "url";
 
-export type StepName = 'draft' | 'critique' | 'verify' | 'refine' | 'extract';
+export type StepName = "draft" | "critique" | "verify" | "refine";
 
-export type StepStatus = 'pending' | 'running' | 'complete' | 'error';
+export type StepStatus = "idle" | "running" | "complete" | "error";
 
-export type Verdict = 'verified' | 'refuted' | 'unclear';
+export type Verdict = "verified" | "refuted" | "unclear";
 
-export type Severity = 'low' | 'medium' | 'high';
-
-export interface ThinkRequest {
-  input: string;
-  mode: InputMode;
-  run_single_shot?: boolean;
-}
+export type Severity = "low" | "medium" | "high";
 
 export interface CritiqueIssue {
   description: string;
@@ -36,12 +30,6 @@ export interface VerificationResult {
   web_verified: boolean;
 }
 
-export interface RefinedResponse {
-  content: string;
-  confidence: number;
-  changes_made: string[];
-}
-
 export interface PipelineMetrics {
   total_duration_ms: number;
   confidence_before: number;
@@ -55,64 +43,31 @@ export interface PipelineMetrics {
   web_verified: boolean;
 }
 
-export interface StepStartEvent {
-  step: StepName;
-  status: 'running';
-  label: string;
-}
-
-export interface StepStreamEvent {
-  step: StepName;
-  token: string;
-}
-
-export interface StepCompleteEvent {
-  step: StepName;
-  status: 'complete' | 'error';
-  duration_ms?: number;
-  content?: string | Critique;
-  error?: string;
-  // Verify specific
-  verified?: number;
-  refuted?: number;
-  unclear?: number;
-  web_verified?: boolean;
-  // Refine specific
-  confidence?: number;
-  changes_made?: string[];
-}
-
-export interface VerifyClaimEvent extends VerificationResult {}
-
-export interface PipelineCompleteEvent extends PipelineMetrics {}
-
-export interface StepState {
+export interface DraftState {
   status: StepStatus;
+  content: string;
   duration_ms?: number;
-  content?: string;
-  error?: string;
 }
 
-export interface DraftState extends StepState {
-  content?: string;
+export interface CritiqueState {
+  status: StepStatus;
+  data?: Critique;
+  duration_ms?: number;
 }
 
-export interface CritiqueState extends StepState {
-  critique?: Critique;
-}
-
-export interface VerifyState extends StepState {
+export interface VerifyState {
+  status: StepStatus;
   results: VerificationResult[];
-  verified: number;
-  refuted: number;
-  unclear: number;
+  duration_ms?: number;
   web_verified: boolean;
 }
 
-export interface RefineState extends StepState {
-  content?: string;
+export interface RefineState {
+  status: StepStatus;
+  content: string;
   confidence?: number;
-  changes_made?: string[];
+  changes_made: string[];
+  duration_ms?: number;
 }
 
 export interface PipelineState {
@@ -123,10 +78,4 @@ export interface PipelineState {
   verify: VerifyState;
   refine: RefineState;
   metrics?: PipelineMetrics;
-}
-
-export interface ExamplesResponse {
-  questions: string[];
-  claims: string[];
-  urls: string[];
 }
