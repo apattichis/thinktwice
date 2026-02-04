@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { ArrowUpRight } from "lucide-react";
 import { useExamples } from "@/hooks/use-examples";
 import type { InputMode } from "@/types";
 
@@ -24,9 +25,11 @@ export function ExamplePrompts({ mode, onSelect }: ExamplePromptsProps) {
   if (!items.length) return null;
 
   return (
-    <div className="space-y-3">
-      <p className="text-sm text-text-muted">Try an example</p>
-      <div className="flex flex-wrap gap-2">
+    <div className="w-full max-w-2xl mx-auto mt-8">
+      <p className="text-sm text-text-quaternary mb-4 text-center">
+        Or try one of these examples
+      </p>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         {items.slice(0, 4).map((item, i) => (
           <motion.button
             key={i}
@@ -34,9 +37,12 @@ export function ExamplePrompts({ mode, onSelect }: ExamplePromptsProps) {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.05 }}
             onClick={() => onSelect(item)}
-            className="px-4 py-2 text-sm text-text-secondary bg-surface border border-border rounded-full hover:border-border hover:bg-surface-elevated transition-all duration-200"
+            className="group relative text-left p-4 rounded-xl border border-border-subtle bg-bg-secondary/50 hover:bg-bg-tertiary hover:border-border-default transition-all duration-200"
           >
-            {item.length > 50 ? item.slice(0, 50) + "..." : item}
+            <p className="text-sm text-text-secondary group-hover:text-text-primary transition-colors pr-6 line-clamp-2">
+              {item}
+            </p>
+            <ArrowUpRight className="absolute top-4 right-4 w-4 h-4 text-text-quaternary group-hover:text-brand transition-colors" />
           </motion.button>
         ))}
       </div>

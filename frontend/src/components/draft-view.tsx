@@ -1,6 +1,7 @@
 "use client";
 
 import ReactMarkdown from "react-markdown";
+import { FileText } from "lucide-react";
 import { StepCard } from "./step-card";
 import type { DraftState } from "@/types";
 
@@ -13,7 +14,7 @@ export function DraftView({ state }: DraftViewProps) {
     <StepCard
       title="Draft"
       status={state.status}
-      color="var(--color-draft)"
+      color="#6366f1"
       duration={state.duration_ms}
     >
       {state.content ? (
@@ -21,8 +22,9 @@ export function DraftView({ state }: DraftViewProps) {
           <ReactMarkdown>{state.content}</ReactMarkdown>
         </div>
       ) : state.status === "running" ? (
-        <div className="flex items-center justify-center py-8 text-text-muted">
-          Generating initial response...
+        <div className="flex items-center justify-center gap-3 py-12 text-text-tertiary">
+          <FileText className="w-5 h-5" />
+          <span>Generating initial response...</span>
         </div>
       ) : null}
     </StepCard>

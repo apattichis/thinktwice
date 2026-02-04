@@ -35,12 +35,12 @@ export default function Home() {
   const hasStarted = state.draft.status !== "idle";
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen gradient-bg">
       <Header />
 
-      <main className="flex-1">
-        <div className="max-w-3xl mx-auto px-6 py-12">
-          {/* Hero section - only show when not started */}
+      <main className="pt-24 pb-16">
+        <div className="max-w-4xl mx-auto px-6">
+          {/* Hero */}
           <AnimatePresence mode="wait">
             {!hasStarted && (
               <motion.div
@@ -49,23 +49,40 @@ export default function Home() {
                 exit={{ opacity: 0, y: -20 }}
                 className="text-center mb-12"
               >
-                <h2 className="text-4xl font-bold text-text mb-4 tracking-tight">
-                  Get verified answers
-                </h2>
-                <p className="text-lg text-text-secondary max-w-xl mx-auto">
-                  AI that drafts, self-critiques, fact-checks against live sources,
-                  and refines its answers with full transparency.
+                <motion.div
+                  initial={{ scale: 0.9, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ delay: 0.1 }}
+                >
+                  <span className="inline-block px-4 py-1.5 text-xs font-medium text-brand-light bg-brand/10 rounded-full border border-brand/20 mb-6">
+                    AI-Powered Fact Verification
+                  </span>
+                </motion.div>
+
+                <h1 className="text-5xl sm:text-6xl font-bold tracking-tight mb-6">
+                  <span className="gradient-text">Think twice</span>
+                  <br />
+                  <span className="text-text-primary">before you trust</span>
+                </h1>
+
+                <p className="text-lg text-text-secondary max-w-xl mx-auto leading-relaxed">
+                  Get answers that are drafted, self-critiqued, fact-checked against
+                  live sources, and refined — all in real-time transparency.
                 </p>
               </motion.div>
             )}
           </AnimatePresence>
 
-          {/* Input area */}
+          {/* Input */}
           <div className="mb-8">
-            <InputArea onSubmit={handleSubmit} isLoading={state.isRunning} />
+            <InputArea
+              onSubmit={handleSubmit}
+              isLoading={state.isRunning}
+              initialValue={inputValue}
+            />
           </div>
 
-          {/* Example prompts - only show when not started */}
+          {/* Examples */}
           <AnimatePresence>
             {!hasStarted && (
               <motion.div
@@ -78,28 +95,28 @@ export default function Home() {
             )}
           </AnimatePresence>
 
-          {/* Error display */}
+          {/* Error */}
           <AnimatePresence>
             {state.error && (
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0 }}
-                className="mt-8 p-4 bg-error/10 border border-error/20 rounded-xl text-error"
+                className="mt-8 p-5 rounded-2xl bg-error/10 border border-error/20"
               >
-                <p className="font-medium">Error</p>
-                <p className="text-sm mt-1 opacity-80">{state.error}</p>
+                <p className="font-semibold text-error">Something went wrong</p>
+                <p className="text-sm text-error/80 mt-1">{state.error}</p>
               </motion.div>
             )}
           </AnimatePresence>
 
-          {/* Pipeline visualization */}
+          {/* Pipeline */}
           <AnimatePresence>
             {hasStarted && (
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                className="mt-12 space-y-6"
+                className="mt-16 space-y-8"
               >
                 {/* Stepper */}
                 <PipelineStepper
@@ -117,18 +134,15 @@ export default function Home() {
                   }}
                 />
 
-                {/* Step cards */}
+                {/* Cards */}
                 <div className="space-y-4">
                   <DraftView state={state.draft} />
-
                   {state.critique.status !== "idle" && (
                     <CritiqueView state={state.critique} />
                   )}
-
                   {state.verify.status !== "idle" && (
                     <VerifyView state={state.verify} />
                   )}
-
                   {state.refine.status !== "idle" && (
                     <RefineView state={state.refine} critiqueState={state.critique} />
                   )}
@@ -143,9 +157,11 @@ export default function Home() {
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-border-subtle py-6">
-        <div className="max-w-3xl mx-auto px-6 text-center text-sm text-text-muted">
-          Powered by FastAPI and Anthropic Claude
+      <footer className="border-t border-border-subtle">
+        <div className="max-w-4xl mx-auto px-6 py-8 text-center">
+          <p className="text-sm text-text-quaternary">
+            Powered by FastAPI and Anthropic Claude
+          </p>
         </div>
       </footer>
     </div>
