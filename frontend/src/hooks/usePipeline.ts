@@ -34,10 +34,15 @@ export function usePipeline() {
     switch (eventType) {
       case 'step_start': {
         const e = data as StepStartEvent;
-        setState(prev => ({
-          ...prev,
-          [e.step]: { ...prev[e.step as keyof PipelineState], status: 'running' },
-        }));
+        if (e.step === 'draft') {
+          setState(prev => ({ ...prev, draft: { ...prev.draft, status: 'running' } }));
+        } else if (e.step === 'critique') {
+          setState(prev => ({ ...prev, critique: { ...prev.critique, status: 'running' } }));
+        } else if (e.step === 'verify') {
+          setState(prev => ({ ...prev, verify: { ...prev.verify, status: 'running' } }));
+        } else if (e.step === 'refine') {
+          setState(prev => ({ ...prev, refine: { ...prev.refine, status: 'running' } }));
+        }
         break;
       }
 
