@@ -9,14 +9,13 @@ interface Step {
   name: string;
   label: string;
   color: string;
-  gradient: string;
 }
 
 const steps: Step[] = [
-  { name: "draft", label: "Draft", color: "#6366f1", gradient: "from-indigo-500 to-blue-500" },
-  { name: "critique", label: "Critique", color: "#f59e0b", gradient: "from-amber-500 to-orange-500" },
-  { name: "verify", label: "Verify", color: "#8b5cf6", gradient: "from-violet-500 to-purple-500" },
-  { name: "refine", label: "Refine", color: "#10b981", gradient: "from-emerald-500 to-green-500" },
+  { name: "draft", label: "Draft", color: "#6366f1" },
+  { name: "critique", label: "Critique", color: "#f59e0b" },
+  { name: "verify", label: "Verify", color: "#8b5cf6" },
+  { name: "refine", label: "Refine", color: "#10b981" },
 ];
 
 interface PipelineStepperProps {
@@ -26,11 +25,12 @@ interface PipelineStepperProps {
 
 export function PipelineStepper({ statuses, durations }: PipelineStepperProps) {
   return (
-    <div className="relative py-8">
-      {/* Progress line */}
-      <div className="absolute top-1/2 left-0 right-0 h-0.5 bg-border-subtle -translate-y-1/2" />
+    <div className="py-6">
+      {/* Desktop - horizontal */}
+      <div className="hidden sm:flex items-center justify-between max-w-xl mx-auto relative">
+        {/* Background line */}
+        <div className="absolute top-5 left-6 right-6 h-0.5 bg-border-subtle" />
 
-      <div className="relative flex justify-between max-w-xl mx-auto">
         {steps.map((step, i) => {
           const status = statuses[step.name] || "idle";
           const duration = durations[step.name];
@@ -39,13 +39,26 @@ export function PipelineStepper({ statuses, durations }: PipelineStepperProps) {
           const isIdle = status === "idle";
 
           return (
-            <div key={step.name} className="flex flex-col items-center gap-3">
+            <div key={step.name} className="relative flex flex-col items-center gap-3 z-10">
+              {/* Connector line (completed) */}
+              {i > 0 && statuses[steps[i - 1].name] === "complete" && (
+                <motion.div
+                  className="absolute top-5 right-full h-0.5 mr-3"
+                  style={{
+                    width: "calc(100% - 24px)",
+                    backgroundColor: steps[i - 1].color,
+                  }}
+                  initial={{ scaleX: 0, transformOrigin: "left" }}
+                  animate={{ scaleX: 1 }}
+                  transition={{ duration: 0.5 }}
+                />
+              )}
+
               {/* Step circle */}
               <div className="relative">
-                {/* Glow for active */}
                 {isRunning && (
                   <motion.div
-                    className="absolute inset-0 rounded-full blur-xl"
+                    className="absolute inset-0 rounded-full blur-lg"
                     style={{ backgroundColor: step.color }}
                     animate={{ scale: [1, 1.5, 1], opacity: [0.5, 0.2, 0.5] }}
                     transition={{ duration: 2, repeat: Infinity }}
@@ -54,28 +67,23 @@ export function PipelineStepper({ statuses, durations }: PipelineStepperProps) {
 
                 <motion.div
                   className={cn(
-                    "relative w-12 h-12 rounded-full flex items-center justify-center border-2 transition-all duration-500",
+                    "relative w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all duration-300",
                     isIdle && "border-border-default bg-bg-secondary",
-                    isRunning && "border-transparent",
-                    isComplete && "border-transparent"
+                    (isRunning || isComplete) && "border-transparent"
                   )}
                   style={{
-                    background: isComplete || isRunning
-                      ? `linear-gradient(135deg, ${step.color}, ${step.color}dd)`
-                      : undefined,
-                    boxShadow: isComplete
-                      ? `0 4px 20px ${step.color}40`
-                      : undefined,
+                    backgroundColor: isComplete || isRunning ? step.color : undefined,
+                    boxShadow: isComplete ? `0 4px 15px ${step.color}40` : undefined,
                   }}
                   animate={isRunning ? { scale: [1, 1.05, 1] } : {}}
                   transition={{ duration: 1.5, repeat: Infinity }}
                 >
                   {isComplete ? (
-                    <Check className="w-5 h-5 text-white" strokeWidth={3} />
+                    <Check className="w-5 h-5 text-white" strokeWidth={2.5} />
                   ) : isRunning ? (
                     <Loader2 className="w-5 h-5 text-white animate-spin" />
                   ) : (
-                    <Circle className="w-5 h-5 text-text-quaternary" />
+                    <Circle className="w-4 h-4 text-text-quaternary" />
                   )}
                 </motion.div>
               </div>
@@ -84,36 +92,80 @@ export function PipelineStepper({ statuses, durations }: PipelineStepperProps) {
               <div className="text-center">
                 <p
                   className={cn(
-                    "text-sm font-medium transition-colors",
-                    isIdle ? "text-text-quaternary" : "text-text-primary"
+                    "text-xs font-semibold uppercase tracking-wider transition-colors",
+                    isIdle ? "text-text-quaternary" : "text-text-secondary"
                   )}
                   style={{ color: isComplete || isRunning ? step.color : undefined }}
                 >
                   {step.label}
                 </p>
                 {duration !== undefined && (
-                  <p className="text-xs text-text-quaternary mt-0.5 font-mono">
+                  <p className="text-xs text-text-quaternary mt-1 font-mono">
                     {(duration / 1000).toFixed(1)}s
                   </p>
                 )}
               </div>
+            </div>
+          );
+        })}
+      </div>
 
-              {/* Connector to next */}
-              {i < steps.length - 1 && (
+      {/* Mobile - compact horizontal */}
+      <div className="flex sm:hidden items-center justify-between px-4">
+        {steps.map((step, i) => {
+          const status = statuses[step.name] || "idle";
+          const isComplete = status === "complete";
+          const isRunning = status === "running";
+          const isIdle = status === "idle";
+
+          return (
+            <div key={step.name} className="flex items-center">
+              {/* Step indicator */}
+              <div className="flex flex-col items-center gap-1">
                 <motion.div
-                  className="absolute top-6 h-0.5 bg-gradient-to-r"
+                  className={cn(
+                    "w-8 h-8 rounded-full flex items-center justify-center border-2 transition-all",
+                    isIdle && "border-border-default bg-bg-secondary",
+                    (isRunning || isComplete) && "border-transparent"
+                  )}
                   style={{
-                    left: `calc(${(i + 0.5) * 25}% + 24px)`,
-                    width: `calc(25% - 48px)`,
-                    backgroundImage: isComplete
-                      ? `linear-gradient(to right, ${step.color}, ${steps[i + 1].color})`
-                      : undefined,
-                    backgroundColor: !isComplete ? "transparent" : undefined,
+                    backgroundColor: isComplete || isRunning ? step.color : undefined,
                   }}
-                  initial={{ scaleX: 0 }}
-                  animate={{ scaleX: isComplete ? 1 : 0 }}
-                  transition={{ duration: 0.5 }}
-                />
+                  animate={isRunning ? { scale: [1, 1.1, 1] } : {}}
+                  transition={{ duration: 1.5, repeat: Infinity }}
+                >
+                  {isComplete ? (
+                    <Check className="w-4 h-4 text-white" strokeWidth={2.5} />
+                  ) : isRunning ? (
+                    <Loader2 className="w-4 h-4 text-white animate-spin" />
+                  ) : (
+                    <span className="text-xs text-text-quaternary font-medium">{i + 1}</span>
+                  )}
+                </motion.div>
+                <span
+                  className={cn(
+                    "text-[10px] font-medium uppercase tracking-wider",
+                    isIdle ? "text-text-quaternary" : "text-text-secondary"
+                  )}
+                  style={{ color: isComplete || isRunning ? step.color : undefined }}
+                >
+                  {step.label}
+                </span>
+              </div>
+
+              {/* Connector */}
+              {i < steps.length - 1 && (
+                <div className="w-6 h-0.5 mx-1 bg-border-subtle relative">
+                  {isComplete && (
+                    <motion.div
+                      className="absolute inset-0"
+                      style={{ backgroundColor: step.color }}
+                      initial={{ scaleX: 0 }}
+                      animate={{ scaleX: 1 }}
+                      transition={{ duration: 0.3 }}
+                    />
+                  )}
+                </div>
               )}
             </div>
           );

@@ -59,7 +59,7 @@ export default function Home() {
                   </span>
                 </motion.div>
 
-                <h1 className="text-5xl sm:text-6xl font-bold tracking-tight mb-6">
+                <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold tracking-tight mb-6">
                   <span className="gradient-text">Think twice</span>
                   <br />
                   <span className="text-text-primary">before you trust</span>

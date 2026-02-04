@@ -12,10 +12,10 @@ interface InputAreaProps {
   initialValue?: string;
 }
 
-const modes: { id: InputMode; label: string; description: string }[] = [
-  { id: "question", label: "Ask a Question", description: "Get a verified, fact-checked answer" },
-  { id: "claim", label: "Verify a Claim", description: "Fact-check any statement" },
-  { id: "url", label: "Analyze Article", description: "Extract and verify claims from a URL" },
+const modes: { id: InputMode; label: string; shortLabel: string; description: string }[] = [
+  { id: "question", label: "Ask a Question", shortLabel: "Ask", description: "Get a verified, fact-checked answer" },
+  { id: "claim", label: "Verify a Claim", shortLabel: "Verify", description: "Fact-check any statement" },
+  { id: "url", label: "Analyze Article", shortLabel: "URL", description: "Extract and verify claims from a URL" },
 ];
 
 export function InputArea({ onSubmit, isLoading, initialValue = "" }: InputAreaProps) {
@@ -66,7 +66,8 @@ export function InputArea({ onSubmit, isLoading, initialValue = "" }: InputAreaP
                   transition={{ type: "spring", bounce: 0.15, duration: 0.5 }}
                 />
               )}
-              <span className="relative z-10">{m.label}</span>
+              <span className="relative z-10 hidden sm:inline">{m.label}</span>
+              <span className="relative z-10 sm:hidden">{m.shortLabel}</span>
             </button>
           ))}
         </div>
