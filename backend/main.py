@@ -30,11 +30,18 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     )
     scraper_service = ScraperService()
 
-    # Initialize pipeline
+    # Initialize pipeline with v2 settings
     pipeline = ThinkTwicePipeline(
         llm=llm_service,
         search=search_service,
         scraper=scraper_service,
+        gate_threshold=settings.gate_threshold,
+        gate_min_pass_rate=settings.gate_min_pass_rate,
+        max_iterations=settings.max_iterations,
+        convergence_threshold=settings.convergence_threshold,
+        self_verify_enabled=settings.self_verify_enabled,
+        self_verify_parallel=settings.self_verify_parallel,
+        trust_blend_enabled=settings.trust_blend_enabled,
     )
 
     # Store in app state
@@ -54,7 +61,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 app = FastAPI(
     title="ThinkTwice API",
     description="AI reasoning pipeline that drafts, critiques, verifies, and refines answers",
-    version="1.0.0",
+    version="2.0.0",
     lifespan=lifespan,
 )
 
