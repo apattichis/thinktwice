@@ -20,33 +20,31 @@ export function MetricsBar({ metrics }: MetricsBarProps) {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
+      initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      className="rounded-2xl border border-border-subtle bg-gradient-to-br from-bg-secondary to-bg-tertiary p-4 sm:p-6"
+      className="rounded-2xl border border-border-default bg-bg-secondary p-4 sm:p-5 shadow-sm"
     >
-      {/* Mobile layout */}
+      {/* Mobile */}
       <div className="grid grid-cols-2 gap-4 sm:hidden">
-        {/* Duration */}
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-lg bg-bg-elevated flex items-center justify-center">
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-lg bg-bg-primary flex items-center justify-center">
             <Clock className="w-4 h-4 text-text-tertiary" />
           </div>
           <div>
             <p className="text-[10px] text-text-quaternary uppercase tracking-wider">Time</p>
-            <p className="text-base font-semibold text-text-primary font-mono">
+            <p className="text-sm font-semibold text-text-primary font-mono">
               {(metrics.total_duration_ms / 1000).toFixed(1)}s
             </p>
           </div>
         </div>
 
-        {/* Confidence */}
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-lg bg-bg-elevated flex items-center justify-center">
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-lg bg-bg-primary flex items-center justify-center">
             <TrendingUp className="w-4 h-4 text-text-tertiary" />
           </div>
           <div>
             <p className="text-[10px] text-text-quaternary uppercase tracking-wider">Confidence</p>
-            <p className="text-base font-semibold font-mono">
+            <p className="text-sm font-semibold font-mono">
               <span className="text-text-primary">{metrics.confidence_after}%</span>
               <span
                 className={`ml-1 text-xs ${
@@ -59,53 +57,50 @@ export function MetricsBar({ metrics }: MetricsBarProps) {
           </div>
         </div>
 
-        {/* Verdicts - full width */}
-        <div className="col-span-2 flex items-center justify-center gap-6 pt-3 border-t border-border-subtle">
-          <span className="flex items-center gap-1.5 text-success font-mono text-sm">
-            <CheckCircle className="w-4 h-4" />
+        <div className="col-span-2 flex items-center justify-center gap-5 pt-3 border-t border-border-subtle">
+          <span className="flex items-center gap-1.5 text-success font-mono text-[13px]">
+            <CheckCircle className="w-3.5 h-3.5" />
             {metrics.claims_verified}
           </span>
-          <span className="flex items-center gap-1.5 text-error font-mono text-sm">
-            <XCircle className="w-4 h-4" />
+          <span className="flex items-center gap-1.5 text-error font-mono text-[13px]">
+            <XCircle className="w-3.5 h-3.5" />
             {metrics.claims_refuted}
           </span>
-          <span className="flex items-center gap-1.5 text-warning font-mono text-sm">
-            <AlertCircle className="w-4 h-4" />
+          <span className="flex items-center gap-1.5 text-warning font-mono text-[13px]">
+            <AlertCircle className="w-3.5 h-3.5" />
             {metrics.claims_unclear}
           </span>
         </div>
       </div>
 
-      {/* Desktop layout */}
-      <div className="hidden sm:flex flex-wrap items-center justify-center gap-8">
-        {/* Duration */}
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-bg-elevated flex items-center justify-center">
-            <Clock className="w-5 h-5 text-text-tertiary" />
+      {/* Desktop */}
+      <div className="hidden sm:flex flex-wrap items-center justify-center gap-7">
+        <div className="flex items-center gap-2.5">
+          <div className="w-9 h-9 rounded-xl bg-bg-primary flex items-center justify-center">
+            <Clock className="w-4 h-4 text-text-tertiary" />
           </div>
           <div>
-            <p className="text-xs text-text-quaternary uppercase tracking-wider">Duration</p>
-            <p className="text-lg font-semibold text-text-primary font-mono">
+            <p className="text-[11px] text-text-quaternary uppercase tracking-wider">Duration</p>
+            <p className="text-base font-semibold text-text-primary font-mono">
               {(metrics.total_duration_ms / 1000).toFixed(1)}s
             </p>
           </div>
         </div>
 
-        <div className="w-px h-12 bg-border-subtle" />
+        <div className="w-px h-10 bg-border-subtle" />
 
-        {/* Confidence */}
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-bg-elevated flex items-center justify-center">
-            <TrendingUp className="w-5 h-5 text-text-tertiary" />
+        <div className="flex items-center gap-2.5">
+          <div className="w-9 h-9 rounded-xl bg-bg-primary flex items-center justify-center">
+            <TrendingUp className="w-4 h-4 text-text-tertiary" />
           </div>
           <div>
-            <p className="text-xs text-text-quaternary uppercase tracking-wider">Confidence</p>
-            <p className="text-lg font-semibold font-mono">
+            <p className="text-[11px] text-text-quaternary uppercase tracking-wider">Confidence</p>
+            <p className="text-base font-semibold font-mono">
               <span className="text-text-tertiary">{metrics.confidence_before}%</span>
-              <span className="text-text-quaternary mx-2">→</span>
+              <span className="text-text-quaternary mx-1.5">&#8594;</span>
               <span className="text-text-primary">{metrics.confidence_after}%</span>
               <span
-                className={`ml-2 text-sm ${
+                className={`ml-1.5 text-xs ${
                   delta > 0 ? "text-success" : delta < 0 ? "text-error" : "text-text-quaternary"
                 }`}
               >
@@ -116,26 +111,25 @@ export function MetricsBar({ metrics }: MetricsBarProps) {
           </div>
         </div>
 
-        <div className="w-px h-12 bg-border-subtle" />
+        <div className="w-px h-10 bg-border-subtle" />
 
-        {/* Claims */}
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-bg-elevated flex items-center justify-center">
-            <Search className="w-5 h-5 text-text-tertiary" />
+        <div className="flex items-center gap-2.5">
+          <div className="w-9 h-9 rounded-xl bg-bg-primary flex items-center justify-center">
+            <Search className="w-4 h-4 text-text-tertiary" />
           </div>
           <div>
-            <p className="text-xs text-text-quaternary uppercase tracking-wider">Claims Checked</p>
-            <div className="flex items-center gap-4 mt-1">
-              <span className="flex items-center gap-1.5 text-success font-mono">
-                <CheckCircle className="w-4 h-4" />
+            <p className="text-[11px] text-text-quaternary uppercase tracking-wider">Claims Checked</p>
+            <div className="flex items-center gap-3 mt-0.5">
+              <span className="flex items-center gap-1.5 text-success font-mono text-sm">
+                <CheckCircle className="w-3.5 h-3.5" />
                 {metrics.claims_verified}
               </span>
-              <span className="flex items-center gap-1.5 text-error font-mono">
-                <XCircle className="w-4 h-4" />
+              <span className="flex items-center gap-1.5 text-error font-mono text-sm">
+                <XCircle className="w-3.5 h-3.5" />
                 {metrics.claims_refuted}
               </span>
-              <span className="flex items-center gap-1.5 text-warning font-mono">
-                <AlertCircle className="w-4 h-4" />
+              <span className="flex items-center gap-1.5 text-warning font-mono text-sm">
+                <AlertCircle className="w-3.5 h-3.5" />
                 {metrics.claims_unclear}
               </span>
             </div>

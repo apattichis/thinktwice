@@ -20,10 +20,10 @@ export function RefineView({ state, critiqueState }: RefineViewProps) {
     <StepCard
       title="Refine"
       status={state.status}
-      color="#10b981"
+      color="#34C759"
       duration={state.duration_ms}
     >
-      <div className="space-y-6">
+      <div className="space-y-5">
         {/* Content */}
         {state.content && (
           <div className="prose max-w-none">
@@ -33,24 +33,24 @@ export function RefineView({ state, critiqueState }: RefineViewProps) {
 
         {/* Changes */}
         {state.changes_made.length > 0 && (
-          <div className="pt-6 border-t border-border-subtle">
-            <div className="flex items-center gap-2 text-sm font-medium text-text-secondary mb-4">
+          <div className="pt-5 border-t border-border-subtle">
+            <div className="flex items-center gap-2 text-[13px] font-medium text-text-primary mb-3">
               <CheckCircle className="w-4 h-4 text-success" />
               Improvements Made
-              <span className="ml-auto text-xs text-text-quaternary font-normal">
+              <span className="ml-auto text-[11px] text-text-quaternary font-normal">
                 {state.changes_made.length} changes
               </span>
             </div>
-            <div className="grid gap-2">
+            <div className="grid gap-1.5">
               {state.changes_made.map((change, i) => (
                 <motion.div
                   key={i}
-                  initial={{ opacity: 0, x: -10 }}
+                  initial={{ opacity: 0, x: -8 }}
                   animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: i * 0.05 }}
-                  className="flex items-start gap-3 text-sm text-text-secondary"
+                  transition={{ delay: i * 0.04 }}
+                  className="flex items-start gap-2.5 text-[13px] text-text-secondary"
                 >
-                  <span className="text-success mt-0.5">→</span>
+                  <span className="text-success mt-0.5 shrink-0">&#8250;</span>
                   {change}
                 </motion.div>
               ))}
@@ -60,13 +60,13 @@ export function RefineView({ state, critiqueState }: RefineViewProps) {
 
         {/* Confidence */}
         {state.status === "complete" && (
-          <div className="pt-6 border-t border-border-subtle">
-            <div className="flex items-center justify-between mb-4">
-              <span className="text-sm text-text-tertiary">Confidence Improvement</span>
-              <div className="flex items-center gap-3 font-mono">
-                <span className="text-text-quaternary">{confidenceBefore}%</span>
+          <div className="pt-5 border-t border-border-subtle">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-[13px] text-text-tertiary">Confidence Improvement</span>
+              <div className="flex items-center gap-2.5 font-mono">
+                <span className="text-sm text-text-quaternary">{confidenceBefore}%</span>
                 <ArrowUp
-                  className={`w-4 h-4 ${
+                  className={`w-3.5 h-3.5 ${
                     delta > 0
                       ? "text-success"
                       : delta < 0
@@ -74,10 +74,10 @@ export function RefineView({ state, critiqueState }: RefineViewProps) {
                       : "text-text-quaternary"
                   }`}
                 />
-                <span className="text-xl font-bold text-text-primary">{confidenceAfter}%</span>
+                <span className="text-lg font-bold text-text-primary">{confidenceAfter}%</span>
                 {delta !== 0 && (
                   <span
-                    className={`text-sm font-semibold px-2 py-0.5 rounded-md ${
+                    className={`text-xs font-semibold px-1.5 py-0.5 rounded-md ${
                       delta > 0 ? "text-success bg-success/10" : "text-error bg-error/10"
                     }`}
                   >
@@ -88,36 +88,33 @@ export function RefineView({ state, critiqueState }: RefineViewProps) {
               </div>
             </div>
 
-            {/* Progress bar comparison */}
-            <div className="relative h-4 bg-bg-elevated rounded-full overflow-hidden">
-              {/* Before */}
+            <div className="relative h-2 bg-bg-primary rounded-full overflow-hidden">
               <div
-                className="absolute inset-y-0 left-0 bg-text-quaternary/30 rounded-full"
+                className="absolute inset-y-0 left-0 bg-text-quaternary/20 rounded-full"
                 style={{ width: `${confidenceBefore}%` }}
               />
-              {/* After */}
               <motion.div
                 className="absolute inset-y-0 left-0 rounded-full"
                 style={{
                   background:
                     confidenceAfter >= 70
-                      ? "linear-gradient(90deg, #10b981, #34d399)"
+                      ? "#34C759"
                       : confidenceAfter >= 40
-                      ? "linear-gradient(90deg, #f59e0b, #fbbf24)"
-                      : "linear-gradient(90deg, #ef4444, #f87171)",
+                      ? "#FF9500"
+                      : "#FF3B30",
                 }}
                 initial={{ width: `${confidenceBefore}%` }}
                 animate={{ width: `${confidenceAfter}%` }}
-                transition={{ duration: 1, ease: "easeOut" }}
+                transition={{ duration: 0.8, ease: "easeOut" }}
               />
             </div>
           </div>
         )}
 
         {state.status === "running" && !state.content && (
-          <div className="flex items-center justify-center gap-3 py-12 text-text-tertiary">
+          <div className="flex items-center justify-center gap-3 py-10 text-text-tertiary">
             <Wand2 className="w-5 h-5" />
-            <span>Refining with corrections...</span>
+            <span className="text-sm">Refining with corrections...</span>
           </div>
         )}
       </div>

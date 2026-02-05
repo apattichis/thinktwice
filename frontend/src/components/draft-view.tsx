@@ -14,7 +14,7 @@ export function DraftView({ state }: DraftViewProps) {
     <StepCard
       title="Draft"
       status={state.status}
-      color="#6366f1"
+      color="#5856D6"
       duration={state.duration_ms}
     >
       {state.content ? (
@@ -22,9 +22,9 @@ export function DraftView({ state }: DraftViewProps) {
           <ReactMarkdown>{state.content}</ReactMarkdown>
         </div>
       ) : state.status === "running" ? (
-        <div className="flex items-center justify-center gap-3 py-12 text-text-tertiary">
+        <div className="flex items-center justify-center gap-3 py-10 text-text-tertiary">
           <FileText className="w-5 h-5" />
-          <span>Generating initial response...</span>
+          <span className="text-sm">Generating initial response...</span>
         </div>
       ) : null}
     </StepCard>

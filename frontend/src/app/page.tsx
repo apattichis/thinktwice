@@ -35,46 +35,47 @@ export default function Home() {
   const hasStarted = state.draft.status !== "idle";
 
   return (
-    <div className="min-h-screen gradient-bg">
+    <div className="min-h-screen bg-bg-primary">
       <Header />
 
-      <main className="pt-24 pb-16">
-        <div className="max-w-4xl mx-auto px-6">
+      <main className="pt-20 pb-16">
+        <div className="max-w-3xl mx-auto px-5 sm:px-6">
           {/* Hero */}
           <AnimatePresence mode="wait">
             {!hasStarted && (
               <motion.div
-                initial={{ opacity: 0, y: 20 }}
+                initial={{ opacity: 0, y: 16 }}
                 animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                className="text-center mb-12"
+                exit={{ opacity: 0, y: -12 }}
+                transition={{ duration: 0.35 }}
+                className="text-center mb-10 pt-8"
               >
                 <motion.div
-                  initial={{ scale: 0.9, opacity: 0 }}
+                  initial={{ scale: 0.95, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}
-                  transition={{ delay: 0.1 }}
+                  transition={{ delay: 0.08 }}
                 >
-                  <span className="inline-block px-4 py-1.5 text-xs font-medium text-brand-light bg-brand/10 rounded-full border border-brand/20 mb-6">
+                  <span className="inline-block px-3 py-1 text-[11px] font-semibold text-brand bg-brand/[0.08] rounded-full mb-5 tracking-wide uppercase">
                     AI-Powered Fact Verification
                   </span>
                 </motion.div>
 
-                <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold tracking-tight mb-6">
-                  <span className="gradient-text">Think twice</span>
+                <h1 className="text-4xl sm:text-5xl font-bold tracking-tight text-text-primary mb-4 leading-[1.1]">
+                  Think twice
                   <br />
-                  <span className="text-text-primary">before you trust</span>
+                  <span className="text-text-tertiary">before you trust</span>
                 </h1>
 
-                <p className="text-lg text-text-secondary max-w-xl mx-auto leading-relaxed">
+                <p className="text-base text-text-secondary max-w-md mx-auto leading-relaxed">
                   Get answers that are drafted, self-critiqued, fact-checked against
-                  live sources, and refined — all in real-time transparency.
+                  live sources, and refined — all in real-time.
                 </p>
               </motion.div>
             )}
           </AnimatePresence>
 
           {/* Input */}
-          <div className="mb-8">
+          <div className="mb-6">
             <InputArea
               onSubmit={handleSubmit}
               isLoading={state.isRunning}
@@ -99,13 +100,13 @@ export default function Home() {
           <AnimatePresence>
             {state.error && (
               <motion.div
-                initial={{ opacity: 0, y: 10 }}
+                initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0 }}
-                className="mt-8 p-5 rounded-2xl bg-error/10 border border-error/20"
+                className="mt-6 p-4 rounded-xl bg-error/[0.06] border border-error/15"
               >
-                <p className="font-semibold text-error">Something went wrong</p>
-                <p className="text-sm text-error/80 mt-1">{state.error}</p>
+                <p className="text-[13px] font-semibold text-error">Something went wrong</p>
+                <p className="text-xs text-text-secondary mt-1">{state.error}</p>
               </motion.div>
             )}
           </AnimatePresence>
@@ -116,9 +117,8 @@ export default function Home() {
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                className="mt-16 space-y-8"
+                className="mt-10 space-y-5"
               >
-                {/* Stepper */}
                 <PipelineStepper
                   statuses={{
                     draft: state.draft.status,
@@ -134,8 +134,7 @@ export default function Home() {
                   }}
                 />
 
-                {/* Cards */}
-                <div className="space-y-4">
+                <div className="space-y-3">
                   <DraftView state={state.draft} />
                   {state.critique.status !== "idle" && (
                     <CritiqueView state={state.critique} />
@@ -148,7 +147,6 @@ export default function Home() {
                   )}
                 </div>
 
-                {/* Metrics */}
                 {state.metrics && <MetricsBar metrics={state.metrics} />}
               </motion.div>
             )}
@@ -158,8 +156,8 @@ export default function Home() {
 
       {/* Footer */}
       <footer className="border-t border-border-subtle">
-        <div className="max-w-4xl mx-auto px-6 py-8 text-center">
-          <p className="text-sm text-text-quaternary">
+        <div className="max-w-3xl mx-auto px-5 sm:px-6 py-6 text-center">
+          <p className="text-xs text-text-quaternary">
             Powered by FastAPI and Anthropic Claude
           </p>
         </div>
