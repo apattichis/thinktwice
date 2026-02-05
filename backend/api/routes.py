@@ -1,6 +1,6 @@
 """API routes for the ThinkTwice backend."""
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Query, Request
 from fastapi.responses import JSONResponse
 from sse_starlette.sse import EventSourceResponse
 
@@ -11,21 +11,41 @@ router = APIRouter()
 
 
 @router.post("/think")
-async def think(request: Request, body: ThinkRequest):
+async def think(
+    request: Request,
+    body: ThinkRequest,
+    version: str = Query("v2", pattern="^v[12]$", description="Pipeline version (v1 or v2)"),
+    max_iterations: int | None = Query(None, ge=1, le=10, description="Max refinement iterations (v2 only)"),
+    gate_threshold: int | None = Query(None, ge=0, le=100, description="Gate confidence threshold (v2 only)"),
+):
     """
     Main endpoint - runs the ThinkTwice pipeline and streams SSE events.
 
-    Events:
+    V1 Events:
     - step_start: A step is beginning
     - step_stream: Token streaming for draft/refine steps
     - step_complete: A step has completed
     - verify_claim: A claim verification result
     - pipeline_complete: Final metrics
+
+    V2 Additional Events:
+    - decompose_complete: Constraint decomposition results
+    - gate_decision: Gate evaluation with sub-questions and decision
+    - constraint_verdict: Per-constraint evaluation (streamed)
+    - self_verify_claim: Self-verification result for a claim
+    - iteration_start: Refinement loop iteration beginning
+    - iteration_complete: Refinement loop iteration with convergence result
+    - trust_decision: Trust comparison result with scores
     """
     pipeline = request.app.state.pipeline
 
     async def event_generator():
-        async for event in pipeline.execute(body):
+        async for event in pipeline.execute(
+            body,
+            version=version,
+            max_iterations=max_iterations,
+            gate_threshold=gate_threshold,
+        ):
             yield event
 
     return EventSourceResponse(event_generator())
