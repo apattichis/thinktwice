@@ -14,21 +14,22 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       <button
         ref={ref}
         className={cn(
-          "inline-flex items-center justify-center font-medium transition-all duration-200",
-          "disabled:opacity-50 disabled:cursor-not-allowed",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+          "inline-flex items-center justify-center font-medium transition-all duration-200 rounded-lg",
+          "disabled:opacity-40 disabled:cursor-not-allowed",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40 focus-visible:ring-offset-2",
+          "active:scale-[0.97]",
           {
-            "bg-accent text-white hover:bg-accent-hover active:scale-[0.98]":
+            "bg-brand text-white shadow-sm shadow-brand/20 hover:bg-brand-dark":
               variant === "primary",
-            "bg-surface-elevated text-text border border-border hover:border-text-muted":
+            "bg-bg-secondary text-text-primary border border-border-strong hover:bg-bg-hover":
               variant === "secondary",
-            "text-text-secondary hover:text-text hover:bg-surface-elevated":
+            "text-text-secondary hover:text-text-primary hover:bg-bg-hover":
               variant === "ghost",
           },
           {
-            "h-8 px-3 text-sm rounded-lg": size === "sm",
-            "h-10 px-4 text-sm rounded-lg": size === "md",
-            "h-12 px-6 text-base rounded-xl": size === "lg",
+            "h-8 px-3 text-[13px] rounded-md gap-1.5": size === "sm",
+            "h-9 px-4 text-sm gap-2": size === "md",
+            "h-11 px-5 text-[15px] gap-2.5 rounded-xl": size === "lg",
           },
           className
         )}

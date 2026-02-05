@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Send, Loader2, Sparkles } from "lucide-react";
+import { Loader2, ArrowRight, Search, ShieldCheck, Link } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { InputMode } from "@/types";
 
@@ -12,10 +12,10 @@ interface InputAreaProps {
   initialValue?: string;
 }
 
-const modes: { id: InputMode; label: string; shortLabel: string; description: string }[] = [
-  { id: "question", label: "Ask a Question", shortLabel: "Ask", description: "Get a verified, fact-checked answer" },
-  { id: "claim", label: "Verify a Claim", shortLabel: "Verify", description: "Fact-check any statement" },
-  { id: "url", label: "Analyze Article", shortLabel: "URL", description: "Extract and verify claims from a URL" },
+const modes: { id: InputMode; label: string; shortLabel: string; icon: typeof Search; description: string }[] = [
+  { id: "question", label: "Ask a Question", shortLabel: "Ask", icon: Search, description: "Get a verified, fact-checked answer" },
+  { id: "claim", label: "Verify a Claim", shortLabel: "Verify", icon: ShieldCheck, description: "Fact-check any statement" },
+  { id: "url", label: "Analyze URL", shortLabel: "URL", icon: Link, description: "Extract and verify claims from a URL" },
 ];
 
 export function InputArea({ onSubmit, isLoading, initialValue = "" }: InputAreaProps) {
@@ -45,15 +45,15 @@ export function InputArea({ onSubmit, isLoading, initialValue = "" }: InputAreaP
 
   return (
     <div className="w-full max-w-2xl mx-auto">
-      {/* Mode selector */}
-      <div className="flex justify-center mb-6">
-        <div className="inline-flex p-1 rounded-2xl bg-bg-secondary border border-border-subtle">
+      {/* Segmented Control */}
+      <div className="flex justify-center mb-5">
+        <div className="inline-flex p-0.5 rounded-lg bg-bg-active/60 border border-border-subtle">
           {modes.map((m) => (
             <button
               key={m.id}
               onClick={() => setMode(m.id)}
               className={cn(
-                "relative px-5 py-2.5 text-sm font-medium rounded-xl transition-all duration-200",
+                "relative px-4 py-1.5 text-[13px] font-medium rounded-md transition-all duration-200",
                 mode === m.id
                   ? "text-text-primary"
                   : "text-text-tertiary hover:text-text-secondary"
@@ -62,8 +62,8 @@ export function InputArea({ onSubmit, isLoading, initialValue = "" }: InputAreaP
               {mode === m.id && (
                 <motion.div
                   layoutId="activeTab"
-                  className="absolute inset-0 bg-bg-elevated rounded-xl shadow-lg"
-                  transition={{ type: "spring", bounce: 0.15, duration: 0.5 }}
+                  className="absolute inset-0 bg-bg-secondary rounded-md shadow-sm border border-border-default"
+                  transition={{ type: "spring", bounce: 0.15, duration: 0.4 }}
                 />
               )}
               <span className="relative z-10 hidden sm:inline">{m.label}</span>
@@ -73,17 +73,14 @@ export function InputArea({ onSubmit, isLoading, initialValue = "" }: InputAreaP
         </div>
       </div>
 
-      {/* Input card */}
+      {/* Input Card */}
       <form onSubmit={handleSubmit}>
         <div className="relative group">
-          {/* Glow effect */}
-          <div className="absolute -inset-1 bg-gradient-to-r from-brand/20 via-purple-500/20 to-blue-500/20 rounded-3xl blur-xl opacity-0 group-focus-within:opacity-100 transition-opacity duration-500" />
-
-          {/* Main input card */}
-          <div className="relative rounded-2xl bg-bg-secondary border border-border-default overflow-hidden transition-all duration-300 group-focus-within:border-brand/50 group-focus-within:shadow-2xl group-focus-within:shadow-brand/5">
-            {/* Description */}
-            <div className="px-5 pt-4 pb-2">
-              <p className="text-sm text-text-tertiary">{currentMode.description}</p>
+          <div className="relative rounded-2xl bg-bg-secondary border border-border-default overflow-hidden transition-all duration-300 shadow-sm group-focus-within:shadow-lg group-focus-within:shadow-brand/[0.06] group-focus-within:border-brand/30">
+            {/* Mode description */}
+            <div className="px-5 pt-4 pb-1 flex items-center gap-2">
+              <currentMode.icon className="w-4 h-4 text-text-quaternary" />
+              <p className="text-[13px] text-text-tertiary">{currentMode.description}</p>
             </div>
 
             {/* Input */}
@@ -95,7 +92,7 @@ export function InputArea({ onSubmit, isLoading, initialValue = "" }: InputAreaP
                 onKeyDown={handleKeyDown}
                 placeholder="https://example.com/article"
                 disabled={isLoading}
-                className="w-full bg-transparent px-5 py-3 text-base text-text-primary placeholder-text-quaternary focus:outline-none disabled:opacity-50"
+                className="w-full bg-transparent px-5 py-3 text-[15px] text-text-primary placeholder-text-quaternary focus:outline-none disabled:opacity-50"
               />
             ) : (
               <textarea
@@ -110,23 +107,27 @@ export function InputArea({ onSubmit, isLoading, initialValue = "" }: InputAreaP
                 }
                 disabled={isLoading}
                 rows={3}
-                className="w-full bg-transparent px-5 py-3 text-base text-text-primary placeholder-text-quaternary focus:outline-none resize-none disabled:opacity-50"
+                className="w-full bg-transparent px-5 py-3 text-[15px] text-text-primary placeholder-text-quaternary focus:outline-none resize-none disabled:opacity-50"
               />
             )}
 
             {/* Footer */}
-            <div className="flex items-center justify-between px-5 py-3 border-t border-border-subtle bg-bg-tertiary/50">
+            <div className="flex items-center justify-between px-5 py-2.5 border-t border-border-subtle">
               <p className="text-xs text-text-quaternary">
-                Press <kbd className="px-1.5 py-0.5 rounded bg-bg-hover text-text-tertiary font-mono text-xs">Enter</kbd> to submit
+                Press{" "}
+                <kbd className="px-1.5 py-0.5 rounded-md bg-bg-primary text-text-tertiary font-mono text-[11px] border border-border-default">
+                  Enter
+                </kbd>{" "}
+                to submit
               </p>
 
               <button
                 type="submit"
                 disabled={!input.trim() || isLoading}
                 className={cn(
-                  "flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium transition-all duration-200",
+                  "flex items-center gap-2 px-4 py-2 rounded-xl text-[13px] font-semibold transition-all duration-200",
                   input.trim() && !isLoading
-                    ? "bg-gradient-to-r from-brand to-indigo-600 text-white shadow-lg shadow-brand/25 hover:shadow-xl hover:shadow-brand/30 hover:scale-[1.02] active:scale-[0.98]"
+                    ? "bg-brand text-white shadow-sm shadow-brand/25 hover:bg-brand-dark active:scale-[0.97]"
                     : "bg-bg-hover text-text-quaternary cursor-not-allowed"
                 )}
               >
@@ -137,10 +138,10 @@ export function InputArea({ onSubmit, isLoading, initialValue = "" }: InputAreaP
                       initial={{ opacity: 0, scale: 0.8 }}
                       animate={{ opacity: 1, scale: 1 }}
                       exit={{ opacity: 0, scale: 0.8 }}
-                      className="flex items-center gap-2"
+                      className="flex items-center gap-1.5"
                     >
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      Processing
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      Analyzing
                     </motion.div>
                   ) : (
                     <motion.div
@@ -148,10 +149,10 @@ export function InputArea({ onSubmit, isLoading, initialValue = "" }: InputAreaP
                       initial={{ opacity: 0, scale: 0.8 }}
                       animate={{ opacity: 1, scale: 1 }}
                       exit={{ opacity: 0, scale: 0.8 }}
-                      className="flex items-center gap-2"
+                      className="flex items-center gap-1.5"
                     >
-                      <Sparkles className="w-4 h-4" />
                       Analyze
+                      <ArrowRight className="w-3.5 h-3.5" />
                     </motion.div>
                   )}
                 </AnimatePresence>

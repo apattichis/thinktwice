@@ -3,17 +3,21 @@
 import { cn } from "@/lib/utils";
 
 interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
-  variant?: "default" | "elevated";
+  variant?: "default" | "elevated" | "glass";
 }
 
 export function Card({ className, variant = "default", children, ...props }: CardProps) {
   return (
     <div
       className={cn(
-        "rounded-xl border transition-colors",
+        "rounded-2xl border transition-all duration-200",
         {
-          "bg-surface border-border": variant === "default",
-          "bg-surface-elevated border-border": variant === "elevated",
+          "bg-bg-secondary border-border-default shadow-sm":
+            variant === "default",
+          "bg-bg-secondary border-border-default shadow-md shadow-black/[0.04]":
+            variant === "elevated",
+          "glass border-border-default shadow-sm":
+            variant === "glass",
         },
         className
       )}
