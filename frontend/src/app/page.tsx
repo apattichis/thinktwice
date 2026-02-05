@@ -35,11 +35,11 @@ export default function Home() {
   const hasStarted = state.draft.status !== "idle";
 
   return (
-    <div className="min-h-screen bg-bg-primary">
+    <div className="bg-bg-primary" style={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
       <Header />
 
-      <main className="pt-20 pb-16">
-        <div className="max-w-3xl mx-auto px-5 sm:px-6">
+      <main style={{ paddingTop: "80px", paddingBottom: "64px", flex: 1 }}>
+        <div style={{ maxWidth: "720px", margin: "0 auto", padding: "0 24px" }}>
           {/* Hero */}
           <AnimatePresence mode="wait">
             {!hasStarted && (
@@ -48,34 +48,60 @@ export default function Home() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -12 }}
                 transition={{ duration: 0.35 }}
-                className="text-center mb-10 pt-8"
+                style={{ textAlign: "center", marginBottom: "40px", paddingTop: "48px" }}
               >
                 <motion.div
                   initial={{ scale: 0.95, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}
                   transition={{ delay: 0.08 }}
                 >
-                  <span className="inline-block px-3 py-1 text-[11px] font-semibold text-brand bg-brand/[0.08] rounded-full mb-5 tracking-wide uppercase">
+                  <span
+                    style={{
+                      fontSize: "13px",
+                      fontWeight: 500,
+                      color: "#86868b",
+                      letterSpacing: "0.02em",
+                      marginBottom: "24px",
+                      display: "inline-block",
+                    }}
+                  >
                     AI-Powered Fact Verification
                   </span>
                 </motion.div>
 
-                <h1 className="text-4xl sm:text-5xl font-bold tracking-tight text-text-primary mb-4 leading-[1.1]">
+                <h1
+                  style={{
+                    fontSize: "clamp(40px, 6vw, 56px)",
+                    fontWeight: 700,
+                    letterSpacing: "-0.03em",
+                    lineHeight: 1.08,
+                    color: "#1d1d1f",
+                    marginBottom: "20px",
+                  }}
+                >
                   Think twice
                   <br />
-                  <span className="text-text-tertiary">before you trust</span>
+                  <span style={{ color: "#86868b" }}>before you trust</span>
                 </h1>
 
-                <p className="text-base text-text-secondary max-w-md mx-auto leading-relaxed">
-                  Get answers that are drafted, self-critiqued, fact-checked against
-                  live sources, and refined — all in real-time.
+                <p
+                  style={{
+                    fontSize: "18px",
+                    color: "#6e6e73",
+                    maxWidth: "480px",
+                    margin: "0 auto",
+                    lineHeight: 1.6,
+                  }}
+                >
+                  Get answers that are drafted, critiqued, fact-checked against
+                  live sources, and refined. All in real-time.
                 </p>
               </motion.div>
             )}
           </AnimatePresence>
 
           {/* Input */}
-          <div className="mb-6">
+          <div style={{ marginBottom: "24px" }}>
             <InputArea
               onSubmit={handleSubmit}
               isLoading={state.isRunning}
@@ -103,10 +129,16 @@ export default function Home() {
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0 }}
-                className="mt-6 p-4 rounded-xl bg-error/[0.06] border border-error/15"
+                style={{
+                  marginTop: "24px",
+                  padding: "16px 20px",
+                  borderRadius: "16px",
+                  background: "rgba(255, 59, 48, 0.06)",
+                  border: "1px solid rgba(255, 59, 48, 0.15)",
+                }}
               >
-                <p className="text-[13px] font-semibold text-error">Something went wrong</p>
-                <p className="text-xs text-text-secondary mt-1">{state.error}</p>
+                <p style={{ fontSize: "14px", fontWeight: 600, color: "#FF3B30" }}>Something went wrong</p>
+                <p style={{ fontSize: "13px", color: "#6e6e73", marginTop: "4px" }}>{state.error}</p>
               </motion.div>
             )}
           </AnimatePresence>
@@ -117,7 +149,7 @@ export default function Home() {
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                className="mt-10 space-y-5"
+                style={{ marginTop: "48px" }}
               >
                 <PipelineStepper
                   statuses={{
@@ -134,7 +166,7 @@ export default function Home() {
                   }}
                 />
 
-                <div className="space-y-3">
+                <div style={{ display: "flex", flexDirection: "column", gap: "12px", marginTop: "24px" }}>
                   <DraftView state={state.draft} />
                   {state.critique.status !== "idle" && (
                     <CritiqueView state={state.critique} />
@@ -147,7 +179,11 @@ export default function Home() {
                   )}
                 </div>
 
-                {state.metrics && <MetricsBar metrics={state.metrics} />}
+                {state.metrics && (
+                  <div style={{ marginTop: "24px" }}>
+                    <MetricsBar metrics={state.metrics} />
+                  </div>
+                )}
               </motion.div>
             )}
           </AnimatePresence>
@@ -155,9 +191,9 @@ export default function Home() {
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-border-subtle">
-        <div className="max-w-3xl mx-auto px-5 sm:px-6 py-6 text-center">
-          <p className="text-xs text-text-quaternary">
+      <footer>
+        <div style={{ maxWidth: "720px", margin: "0 auto", padding: "48px 24px 32px", textAlign: "center" }}>
+          <p style={{ fontSize: "12px", color: "#c7c7cc", fontWeight: 400 }}>
             Powered by FastAPI and Anthropic Claude
           </p>
         </div>

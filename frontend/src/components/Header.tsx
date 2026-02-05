@@ -1,46 +1,68 @@
 "use client";
 
-import { Github } from "lucide-react";
+import { Github, Shield } from "lucide-react";
 
 export function Header() {
   return (
-    <header className="fixed top-0 left-0 right-0 z-50">
-      <div className="mx-auto max-w-6xl px-6">
-        <div className="flex h-16 items-center justify-between border-b border-border-subtle">
+    <header
+      style={{
+        position: "fixed",
+        top: 0,
+        left: 0,
+        right: 0,
+        zIndex: 50,
+        borderBottom: "1px solid rgba(0,0,0,0.04)",
+        background: "rgba(251, 251, 253, 0.72)",
+        backdropFilter: "blur(40px) saturate(210%)",
+        WebkitBackdropFilter: "blur(40px) saturate(210%)",
+      }}
+    >
+      <div style={{ maxWidth: "960px", margin: "0 auto", padding: "0 24px" }}>
+        <div style={{ display: "flex", height: "52px", alignItems: "center", justifyContent: "space-between" }}>
           {/* Logo */}
-          <div className="flex items-center gap-3">
-            <div className="relative">
-              <div className="absolute inset-0 bg-brand/20 blur-xl rounded-full" />
-              <div className="relative w-10 h-10 rounded-xl bg-gradient-to-br from-brand to-indigo-600 flex items-center justify-center shadow-lg shadow-brand/25">
-                <svg
-                  viewBox="0 0 24 24"
-                  className="w-5 h-5 text-white"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="M12 2L2 7l10 5 10-5-10-5z" />
-                  <path d="M2 17l10 5 10-5" />
-                  <path d="M2 12l10 5 10-5" />
-                </svg>
-              </div>
+          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+            <div
+              style={{
+                width: "30px",
+                height: "30px",
+                borderRadius: "8px",
+                background: "linear-gradient(145deg, rgba(255,255,255,0.9), rgba(230,230,235,0.7))",
+                backdropFilter: "blur(20px)",
+                WebkitBackdropFilter: "blur(20px)",
+                border: "1px solid rgba(255,255,255,0.6)",
+                boxShadow: "0 2px 8px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04), inset 0 1px 0 rgba(255,255,255,0.8)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <Shield style={{ width: "14px", height: "14px", color: "#8e8e93" }} strokeWidth={2} />
             </div>
-            <span className="text-lg font-semibold tracking-tight text-text-primary">
+            <span style={{ fontSize: "16px", fontWeight: 600, letterSpacing: "-0.02em", color: "#1d1d1f" }}>
               ThinkTwice
             </span>
           </div>
 
           {/* Nav */}
-          <nav className="flex items-center gap-2">
+          <nav>
             <a
               href="https://github.com/apattichis/thinktwice"
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-2 px-4 py-2 text-sm text-text-tertiary hover:text-text-primary transition-colors rounded-lg hover:bg-bg-hover"
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "6px",
+                padding: "6px 12px",
+                fontSize: "14px",
+                color: "#86868b",
+                textDecoration: "none",
+                borderRadius: "8px",
+                transition: "all 0.2s",
+              }}
+              className="hover:bg-bg-hover hover:text-text-primary"
             >
-              <Github className="w-4 h-4" />
+              <Github style={{ width: "16px", height: "16px" }} />
               <span className="hidden sm:inline">Source</span>
             </a>
           </nav>

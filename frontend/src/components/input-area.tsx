@@ -44,30 +44,57 @@ export function InputArea({ onSubmit, isLoading, initialValue = "" }: InputAreaP
   const currentMode = modes.find((m) => m.id === mode)!;
 
   return (
-    <div className="w-full max-w-2xl mx-auto">
+    <div style={{ width: "100%", maxWidth: "640px", margin: "0 auto" }}>
       {/* Segmented Control */}
-      <div className="flex justify-center mb-5">
-        <div className="inline-flex p-0.5 rounded-lg bg-bg-active/60 border border-border-subtle">
+      <div style={{ display: "flex", justifyContent: "center", marginBottom: "20px" }}>
+        <div
+          style={{
+            display: "inline-flex",
+            padding: "3px",
+            borderRadius: "10px",
+            background: "rgba(0, 0, 0, 0.06)",
+            backdropFilter: "blur(20px)",
+            WebkitBackdropFilter: "blur(20px)",
+            gap: "2px",
+          }}
+        >
           {modes.map((m) => (
             <button
               key={m.id}
               onClick={() => setMode(m.id)}
               className={cn(
-                "relative px-4 py-1.5 text-[13px] font-medium rounded-md transition-all duration-200",
-                mode === m.id
-                  ? "text-text-primary"
-                  : "text-text-tertiary hover:text-text-secondary"
+                "relative transition-all duration-200",
+                mode === m.id ? "text-text-primary" : "text-text-tertiary hover:text-text-secondary"
               )}
+              style={{
+                padding: "8px 18px",
+                fontSize: "14px",
+                fontWeight: 500,
+                borderRadius: "8px",
+                border: "none",
+                cursor: "pointer",
+                background: "transparent",
+                position: "relative",
+                zIndex: 1,
+              }}
             >
               {mode === m.id && (
                 <motion.div
                   layoutId="activeTab"
-                  className="absolute inset-0 bg-bg-secondary rounded-md shadow-sm border border-border-default"
+                  style={{
+                    position: "absolute",
+                    inset: 0,
+                    background: "rgba(255, 255, 255, 0.85)",
+                    backdropFilter: "blur(20px)",
+                    WebkitBackdropFilter: "blur(20px)",
+                    borderRadius: "8px",
+                    boxShadow: "0 1px 4px rgba(0,0,0,0.08), 0 0.5px 1px rgba(0,0,0,0.06)",
+                  }}
                   transition={{ type: "spring", bounce: 0.15, duration: 0.4 }}
                 />
               )}
-              <span className="relative z-10 hidden sm:inline">{m.label}</span>
-              <span className="relative z-10 sm:hidden">{m.shortLabel}</span>
+              <span style={{ position: "relative", zIndex: 2 }} className="hidden sm:inline">{m.label}</span>
+              <span style={{ position: "relative", zIndex: 2 }} className="sm:hidden">{m.shortLabel}</span>
             </button>
           ))}
         </div>
@@ -75,14 +102,19 @@ export function InputArea({ onSubmit, isLoading, initialValue = "" }: InputAreaP
 
       {/* Input Card */}
       <form onSubmit={handleSubmit}>
-        <div className="relative group">
-          <div className="relative rounded-2xl bg-bg-secondary border border-border-default overflow-hidden transition-all duration-300 shadow-sm group-focus-within:shadow-lg group-focus-within:shadow-brand/[0.06] group-focus-within:border-brand/30">
-            {/* Mode description */}
-            <div className="px-5 pt-4 pb-1 flex items-center gap-2">
-              <currentMode.icon className="w-4 h-4 text-text-quaternary" />
-              <p className="text-[13px] text-text-tertiary">{currentMode.description}</p>
-            </div>
-
+        <div className="group">
+          <div
+            className="transition-all duration-300 group-focus-within:shadow-lg group-focus-within:shadow-brand/[0.08]"
+            style={{
+              borderRadius: "16px",
+              background: "rgba(255, 255, 255, 0.72)",
+              backdropFilter: "blur(40px) saturate(210%)",
+              WebkitBackdropFilter: "blur(40px) saturate(210%)",
+              border: "1px solid rgba(0,0,0,0.08)",
+              overflow: "hidden",
+              boxShadow: "0 2px 16px rgba(0,0,0,0.06), 0 0 1px rgba(0,0,0,0.1)",
+            }}
+          >
             {/* Input */}
             {mode === "url" ? (
               <input
@@ -92,7 +124,16 @@ export function InputArea({ onSubmit, isLoading, initialValue = "" }: InputAreaP
                 onKeyDown={handleKeyDown}
                 placeholder="https://example.com/article"
                 disabled={isLoading}
-                className="w-full bg-transparent px-5 py-3 text-[15px] text-text-primary placeholder-text-quaternary focus:outline-none disabled:opacity-50"
+                style={{
+                  width: "100%",
+                  background: "transparent",
+                  padding: "16px 20px",
+                  fontSize: "16px",
+                  color: "#1d1d1f",
+                  border: "none",
+                  outline: "none",
+                  opacity: isLoading ? 0.5 : 1,
+                }}
               />
             ) : (
               <textarea
@@ -107,15 +148,44 @@ export function InputArea({ onSubmit, isLoading, initialValue = "" }: InputAreaP
                 }
                 disabled={isLoading}
                 rows={3}
-                className="w-full bg-transparent px-5 py-3 text-[15px] text-text-primary placeholder-text-quaternary focus:outline-none resize-none disabled:opacity-50"
+                style={{
+                  width: "100%",
+                  background: "transparent",
+                  padding: "16px 20px",
+                  fontSize: "16px",
+                  color: "#1d1d1f",
+                  border: "none",
+                  outline: "none",
+                  resize: "none",
+                  opacity: isLoading ? 0.5 : 1,
+                  fontFamily: "inherit",
+                }}
               />
             )}
 
             {/* Footer */}
-            <div className="flex items-center justify-between px-5 py-2.5 border-t border-border-subtle">
-              <p className="text-xs text-text-quaternary">
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                padding: "10px 20px",
+                borderTop: "1px solid rgba(0,0,0,0.05)",
+              }}
+            >
+              <p style={{ fontSize: "13px", color: "#aeaeb2" }}>
                 Press{" "}
-                <kbd className="px-1.5 py-0.5 rounded-md bg-bg-primary text-text-tertiary font-mono text-[11px] border border-border-default">
+                <kbd
+                  style={{
+                    padding: "2px 6px",
+                    borderRadius: "5px",
+                    background: "#f5f5f7",
+                    color: "#86868b",
+                    fontFamily: "var(--font-mono)",
+                    fontSize: "11px",
+                    border: "1px solid rgba(0,0,0,0.08)",
+                  }}
+                >
                   Enter
                 </kbd>{" "}
                 to submit
@@ -124,12 +194,21 @@ export function InputArea({ onSubmit, isLoading, initialValue = "" }: InputAreaP
               <button
                 type="submit"
                 disabled={!input.trim() || isLoading}
-                className={cn(
-                  "flex items-center gap-2 px-4 py-2 rounded-xl text-[13px] font-semibold transition-all duration-200",
-                  input.trim() && !isLoading
-                    ? "bg-brand text-white shadow-sm shadow-brand/25 hover:bg-brand-dark active:scale-[0.97]"
-                    : "bg-bg-hover text-text-quaternary cursor-not-allowed"
-                )}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "6px",
+                  padding: "8px 18px",
+                  borderRadius: "10px",
+                  fontSize: "14px",
+                  fontWeight: 600,
+                  border: "none",
+                  cursor: input.trim() && !isLoading ? "pointer" : "not-allowed",
+                  background: input.trim() && !isLoading ? "#007AFF" : "#e8e8ed",
+                  color: input.trim() && !isLoading ? "#ffffff" : "#aeaeb2",
+                  boxShadow: input.trim() && !isLoading ? "0 2px 8px rgba(0, 122, 255, 0.3)" : "none",
+                  transition: "all 0.2s",
+                }}
               >
                 <AnimatePresence mode="wait">
                   {isLoading ? (
@@ -138,9 +217,9 @@ export function InputArea({ onSubmit, isLoading, initialValue = "" }: InputAreaP
                       initial={{ opacity: 0, scale: 0.8 }}
                       animate={{ opacity: 1, scale: 1 }}
                       exit={{ opacity: 0, scale: 0.8 }}
-                      className="flex items-center gap-1.5"
+                      style={{ display: "flex", alignItems: "center", gap: "6px" }}
                     >
-                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      <Loader2 style={{ width: "14px", height: "14px" }} className="animate-spin" />
                       Analyzing
                     </motion.div>
                   ) : (
@@ -149,10 +228,10 @@ export function InputArea({ onSubmit, isLoading, initialValue = "" }: InputAreaP
                       initial={{ opacity: 0, scale: 0.8 }}
                       animate={{ opacity: 1, scale: 1 }}
                       exit={{ opacity: 0, scale: 0.8 }}
-                      className="flex items-center gap-1.5"
+                      style={{ display: "flex", alignItems: "center", gap: "6px" }}
                     >
                       Analyze
-                      <ArrowRight className="w-3.5 h-3.5" />
+                      <ArrowRight style={{ width: "14px", height: "14px" }} />
                     </motion.div>
                   )}
                 </AnimatePresence>

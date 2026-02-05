@@ -37,7 +37,12 @@ export function ExamplePrompts({ mode, onSelect }: ExamplePromptsProps) {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.04, duration: 0.3 }}
             onClick={() => onSelect(item)}
-            className="group relative text-left p-3.5 rounded-xl border border-border-default bg-bg-secondary hover:bg-bg-tertiary hover:border-border-strong transition-all duration-200 hover:shadow-sm"
+            className="group relative text-left p-3.5 rounded-xl border border-white/60 hover:border-border-strong transition-all duration-200 hover:shadow-sm"
+            style={{
+              background: "rgba(255, 255, 255, 0.55)",
+              backdropFilter: "blur(30px) saturate(180%)",
+              WebkitBackdropFilter: "blur(30px) saturate(180%)",
+            }}
           >
             <p className="text-[13px] text-text-secondary group-hover:text-text-primary transition-colors pr-6 line-clamp-2 leading-relaxed">
               {item}

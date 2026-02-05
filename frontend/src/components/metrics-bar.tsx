@@ -22,7 +22,13 @@ export function MetricsBar({ metrics }: MetricsBarProps) {
     <motion.div
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      className="rounded-2xl border border-border-default bg-bg-secondary p-4 sm:p-5 shadow-sm"
+      className="rounded-2xl border border-white/60 p-4 sm:p-5"
+      style={{
+        background: "rgba(255, 255, 255, 0.55)",
+        backdropFilter: "blur(40px) saturate(200%)",
+        WebkitBackdropFilter: "blur(40px) saturate(200%)",
+        boxShadow: "0 1px 8px rgba(0,0,0,0.04), 0 0 1px rgba(0,0,0,0.06)",
+      }}
     >
       {/* Mobile */}
       <div className="grid grid-cols-2 gap-4 sm:hidden">

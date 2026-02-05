@@ -38,13 +38,16 @@ export function StepCard({
       <div
         className={cn(
           "relative rounded-2xl border overflow-hidden transition-all duration-300",
-          isRunning
-            ? "bg-bg-secondary shadow-md shadow-black/[0.04]"
-            : "bg-bg-secondary shadow-sm",
           "border-border-default"
         )}
         style={{
+          background: "rgba(255, 255, 255, 0.65)",
+          backdropFilter: "blur(40px) saturate(200%)",
+          WebkitBackdropFilter: "blur(40px) saturate(200%)",
           borderColor: isRunning ? `${color}30` : undefined,
+          boxShadow: isRunning
+            ? "0 4px 24px rgba(0,0,0,0.06), 0 0 1px rgba(0,0,0,0.1)"
+            : "0 1px 8px rgba(0,0,0,0.04), 0 0 1px rgba(0,0,0,0.06)",
         }}
       >
         {/* Header */}
