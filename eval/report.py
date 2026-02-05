@@ -94,7 +94,7 @@ def generate_radar_chart(metrics: dict, output_path: str, title: str = "Pipeline
         max(0, 1 - (metrics.get("latency", {}).get("mean_ms", 30000) / 60000)),  # Inverse latency
     ]
 
-    angles = [n / float(n) * 2 * 3.14159 for n in range(n)]
+    angles = [i / float(n) * 2 * 3.14159 for i in range(n)]
     values_plot = values + [values[0]]
     angles_plot = angles + [angles[0]]
 

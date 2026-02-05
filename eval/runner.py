@@ -22,6 +22,10 @@ from typing import Optional
 # Add backend to path for direct imports
 sys.path.insert(0, str(Path(__file__).parent.parent / "backend"))
 
+# Load .env from project root (config.py uses ../. relative to backend/)
+from dotenv import load_dotenv
+load_dotenv(Path(__file__).parent.parent / ".env")
+
 from config import get_settings
 from services.llm import LLMService
 from services.search import SearchService
