@@ -19,3 +19,7 @@ lxml==5.3.0
 
 # Environment
 python-dotenv==1.0.1
+
+# Evaluation (optional — needed for eval/ scripts)
+matplotlib>=3.8.0
+scipy>=1.11.0
