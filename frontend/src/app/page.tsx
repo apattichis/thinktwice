@@ -153,17 +153,25 @@ export default function Home() {
               >
                 <PipelineStepper
                   statuses={{
+                    decompose: state.decompose.status,
                     draft: state.draft.status,
+                    gate: state.gate.status,
                     critique: state.critique.status,
                     verify: state.verify.status,
                     refine: state.refine.status,
+                    trust: state.trust.status,
                   }}
                   durations={{
+                    decompose: state.decompose.duration_ms,
                     draft: state.draft.duration_ms,
+                    gate: state.gate.duration_ms,
                     critique: state.critique.duration_ms,
                     verify: state.verify.duration_ms,
                     refine: state.refine.duration_ms,
+                    trust: state.trust.duration_ms,
                   }}
+                  version={state.pipelineVersion}
+                  iteration={state.currentIteration}
                 />
 
                 <div style={{ display: "flex", flexDirection: "column", gap: "12px", marginTop: "24px" }}>

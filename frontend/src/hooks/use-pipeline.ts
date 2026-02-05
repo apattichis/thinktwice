@@ -7,16 +7,26 @@ import type {
   Critique,
   VerificationResult,
   PipelineMetrics,
+  Constraint,
+  ConstraintEvaluation,
+  GateDecision,
+  TrustDecision,
 } from "@/types";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 const initialState: PipelineState = {
   isRunning: false,
+  pipelineVersion: "v2",
+  currentIteration: 0,
   draft: { status: "idle", content: "" },
   critique: { status: "idle" },
   verify: { status: "idle", results: [], web_verified: true },
   refine: { status: "idle", content: "", changes_made: [] },
+  decompose: { status: "idle", constraints: [] },
+  gate: { status: "idle" },
+  trust: { status: "idle" },
+  constraintVerdicts: [],
 };
 
 export function usePipeline() {
@@ -35,14 +45,14 @@ export function usePipeline() {
     setState((prev) => ({ ...prev, isRunning: false }));
   }, []);
 
-  const run = useCallback(async (input: string, mode: InputMode) => {
+  const run = useCallback(async (input: string, mode: InputMode, version: "v1" | "v2" = "v2") => {
     reset();
-    setState((prev) => ({ ...prev, isRunning: true }));
+    setState((prev) => ({ ...prev, isRunning: true, pipelineVersion: version }));
 
     abortRef.current = new AbortController();
 
     try {
-      const response = await fetch(`${API_BASE}/api/think`, {
+      const response = await fetch(`${API_BASE}/api/think?version=${version}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ input, mode }),
@@ -99,6 +109,90 @@ export function usePipeline() {
 
     function handleEvent(event: string, data: Record<string, unknown>) {
       switch (event) {
+        // === V2 events ===
+
+        case "decompose_complete": {
+          const constraints = (data.constraints as Constraint[]) || [];
+          setState((prev) => ({
+            ...prev,
+            decompose: {
+              status: "complete",
+              constraints,
+              duration_ms: data.duration_ms as number,
+            },
+          }));
+          break;
+        }
+
+        case "gate_decision": {
+          const decision = data as unknown as GateDecision;
+          setState((prev) => ({
+            ...prev,
+            gate: {
+              status: "complete",
+              decision,
+              duration_ms: data.duration_ms as number,
+            },
+          }));
+          break;
+        }
+
+        case "constraint_verdict": {
+          const evaluation = data as unknown as ConstraintEvaluation;
+          setState((prev) => ({
+            ...prev,
+            constraintVerdicts: [...prev.constraintVerdicts, evaluation],
+          }));
+          break;
+        }
+
+        case "self_verify_claim": {
+          // Treat like a regular verify_claim but from self-verification
+          const result = data as unknown as VerificationResult;
+          setState((prev) => ({
+            ...prev,
+            verify: {
+              ...prev.verify,
+              results: [...prev.verify.results, result],
+            },
+          }));
+          break;
+        }
+
+        case "iteration_start": {
+          const iteration = data.iteration as number;
+          setState((prev) => ({
+            ...prev,
+            currentIteration: iteration,
+            // Reset critique/verify/refine for new iteration
+            critique: { status: "idle" },
+            verify: { status: "idle", results: [], web_verified: true },
+            refine: { status: "idle", content: "", changes_made: [] },
+            constraintVerdicts: [],
+          }));
+          break;
+        }
+
+        case "iteration_complete": {
+          // Convergence info — no special UI action needed
+          break;
+        }
+
+        case "trust_decision": {
+          const decision = data as unknown as TrustDecision;
+          setState((prev) => ({
+            ...prev,
+            trust: {
+              status: "complete",
+              decision,
+              duration_ms: data.duration_ms as number,
+            },
+          }));
+          break;
+        }
+
+        // === Shared V1/V2 events ===
+
         case "step_start": {
           const step = data.step as string;
           if (step === "draft") {
@@ -120,6 +214,21 @@ export function usePipeline() {
             setState((prev) => ({
               ...prev,
               refine: { ...prev.refine, status: "running" },
+            }));
+          } else if (step === "decompose") {
+            setState((prev) => ({
+              ...prev,
+              decompose: { ...prev.decompose, status: "running" },
+            }));
+          } else if (step === "gate") {
+            setState((prev) => ({
+              ...prev,
+              gate: { ...prev.gate, status: "running" },
+            }));
+          } else if (step === "trust") {
+            setState((prev) => ({
+              ...prev,
+              trust: { ...prev.trust, status: "running" },
             }));
           }
           break;
