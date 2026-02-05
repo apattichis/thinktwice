@@ -14,7 +14,8 @@ import logging
 import sys
 from pathlib import Path
 
-# Add backend to path
+# Add project root and backend to path
+sys.path.insert(0, str(Path(__file__).parent.parent))
 sys.path.insert(0, str(Path(__file__).parent.parent / "backend"))
 
 from eval.runner import EvalRunner
