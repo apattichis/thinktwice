@@ -31,6 +31,15 @@ class Settings(BaseSettings):
     max_tokens: int = 4096
     timeout: float = 60.0
 
+    # V2 Pipeline Configuration
+    gate_threshold: int = 85
+    gate_min_pass_rate: float = 1.0
+    max_iterations: int = 3
+    convergence_threshold: int = 80
+    self_verify_enabled: bool = True
+    self_verify_parallel: bool = True
+    trust_blend_enabled: bool = True
+
     @property
     def has_search(self) -> bool:
         """Check if any search API is configured."""
