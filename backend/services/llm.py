@@ -10,7 +10,7 @@ class LLMService:
     def __init__(
         self,
         api_key: str,
-        model: str = "claude-sonnet-4-20250514",
+        model: str = "claude-3-5-haiku-20241022",
         max_tokens: int = 4096,
         timeout: float = 60.0,
     ):

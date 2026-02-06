@@ -58,7 +58,7 @@ This is the pattern enterprise AI is moving toward. Building it as a portfolio p
 
 ### Backend
 - **Python 3.11+** with **FastAPI**
-- **Anthropic Claude API** (claude-sonnet-4-20250514) as the reasoning engine
+- **Anthropic Claude API** (claude-3-5-haiku-20241022) as the reasoning engine
 - **httpx** for async HTTP requests
 - **Server-Sent Events (SSE)** via `sse-starlette` for real-time streaming
 - **Pydantic v2** for data validation
@@ -775,7 +775,7 @@ FRONTEND_URL=http://localhost:5173
 | Decision | Rationale |
 |---|---|
 | SSE over WebSockets | Unidirectional (server→client), simpler, perfect for streaming pipeline events |
-| Single model (Sonnet) for all steps | Simpler, faster, cheaper. Each step is differentiated by prompt, not model |
+| Single model (Haiku 3.5) for all steps | Cheapest option, fair comparison across pipelines. Each step is differentiated by prompt, not model |
 | tool_use for critic output | Forces structured JSON — no regex parsing of free-form text |
 | Brave Search as primary | Free tier (2000/mo), fast, good quality. Tavily as fallback |
 | Three input modes | Makes the project concrete and useful, not just a demo |

@@ -27,11 +27,11 @@ class Settings(BaseSettings):
     frontend_url: str = "http://localhost:5173"
 
     # LLM Configuration
-    model_name: str = "claude-sonnet-4-20250514"
+    model_name: str = "claude-3-5-haiku-20241022"
     max_tokens: int = 4096
     timeout: float = 60.0
 
-    # V2 Pipeline Configuration
+    # Pipeline Configuration
     gate_threshold: int = 70
     gate_min_pass_rate: float = 0.8
     max_iterations: int = 3
