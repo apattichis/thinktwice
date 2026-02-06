@@ -483,6 +483,8 @@ def generate_report(
     metrics = compute_all_metrics(results)
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
+    section = 0  # Dynamic section counter
+
     lines = []
     lines.append("# ThinkTwice Evaluation Report")
     lines.append("")
@@ -493,7 +495,8 @@ def generate_report(
     lines.append("")
 
     # ─── Executive Summary ───
-    lines.append("## 1. Executive Summary")
+    section += 1
+    lines.append(f"## {section}. Executive Summary")
     lines.append("")
 
     acc = metrics["accuracy"]
@@ -521,8 +524,58 @@ def generate_report(
         lines.append("![Pipeline Metrics Radar](charts/radar.png)")
         lines.append("")
 
+    # ─── Methodology ───
+    section += 1
+    lines.append(f"## {section}. Methodology")
+    lines.append("")
+    lines.append("### Experimental Setup")
+    lines.append("")
+    lines.append("Three pipeline configurations are compared:")
+    lines.append("")
+    lines.append("| Pipeline | Description | Steps |")
+    lines.append("|----------|-------------|-------|")
+    lines.append("| **Single-Shot** | Raw Claude API call with no self-correction (control group) | 1 |")
+    lines.append("| **V1 (Linear)** | 4-step linear pipeline: Draft, Critique, Verify, Refine | 4 |")
+    lines.append("| **V2 (Research)** | Research-inspired pipeline with constraint decomposition, gating, iterative convergence, and trust ranking | 5-9 |")
+    lines.append("")
+    lines.append("All pipelines use the same underlying language model (Claude) and have access to the same web search and source verification tools.")
+    lines.append("")
+
+    # Dataset description
+    n_domains = len(acc.get("per_domain", {}))
+    per_diff = acc.get("per_difficulty", {})
+    n_difficulties = len(per_diff)
+    lines.append("### Dataset")
+    lines.append("")
+    dataset_desc = f"The **{dataset_name}** benchmark comprises **{len(results)} claims**"
+    if n_domains > 0:
+        domain_names = ", ".join(d.replace("_", " ").title() for d in sorted(acc.get("per_domain", {}).keys()))
+        dataset_desc += f" spanning **{n_domains} domains** ({domain_names})"
+    if n_difficulties > 0:
+        diff_breakdown = ", ".join(
+            f"{d.title()}: {per_diff[d]['total']}"
+            for d in ["easy", "medium", "hard"] if d in per_diff
+        )
+        dataset_desc += f" across **{n_difficulties} difficulty levels** ({diff_breakdown})"
+    dataset_desc += "."
+    lines.append(dataset_desc)
+    lines.append("")
+
+    # Classification description
+    lines.append("### Evaluation Protocol")
+    lines.append("")
+    lines.append("Each claim is classified into one of three categories:")
+    lines.append("")
+    lines.append("- **True**: The claim is factually accurate")
+    lines.append("- **False**: The claim is factually inaccurate or a misconception")
+    lines.append("- **Partial**: The claim contains elements of truth but is oversimplified, misleading, or requires significant qualification")
+    lines.append("")
+    lines.append("Classification is performed by a multi-region signal detection classifier that analyzes the pipeline's natural language output across opener, closer, verdict section, and full-text regions.")
+    lines.append("")
+
     # ─── Per-Class Classification ───
-    lines.append("## 2. Per-Class Classification Metrics")
+    section += 1
+    lines.append(f"## {section}. Per-Class Classification Metrics")
     lines.append("")
     lines.append("| Class | Precision | Recall | F1 | Support |")
     lines.append("|-------|-----------|--------|-----|---------|")
@@ -544,7 +597,8 @@ def generate_report(
         v1m = comparison["v1_metrics"]
         v2m = comparison["v2_metrics"]
 
-        lines.append("## 3. Baseline Comparison")
+        section += 1
+        lines.append(f"## {section}. Baseline Comparison")
         lines.append("")
         lines.append("| Metric | Single-Shot | V1 (Linear) | V2 (Research) |")
         lines.append("|--------|-------------|-------------|---------------|")
@@ -626,7 +680,8 @@ def generate_report(
             lines.append("")
 
     # ─── Per-Domain Breakdown ───
-    lines.append("## 4. Per-Domain Breakdown")
+    section += 1
+    lines.append(f"## {section}. Per-Domain Breakdown")
     lines.append("")
     domain_chart = generate_domain_breakdown(results, str(charts_dir / "domains.png"))
     if domain_chart:
@@ -644,7 +699,8 @@ def generate_report(
     # ─── Per-Difficulty Breakdown ───
     per_diff = acc.get("per_difficulty", {})
     if per_diff:
-        lines.append("## 5. Per-Difficulty Breakdown")
+        section += 1
+        lines.append(f"## {section}. Per-Difficulty Breakdown")
         lines.append("")
 
         diff_chart = generate_difficulty_chart(results, str(charts_dir / "difficulty.png"))
@@ -661,7 +717,8 @@ def generate_report(
         lines.append("")
 
     # ─── V2 Pipeline-Specific Metrics ───
-    lines.append("## 6. V2 Pipeline Analysis")
+    section += 1
+    lines.append(f"## {section}. V2 Pipeline Analysis")
     lines.append("")
 
     lines.append("### Gate Mechanism")
@@ -697,7 +754,8 @@ def generate_report(
     lines.append("")
 
     # ─── Latency ───
-    lines.append("## 7. Latency Analysis")
+    section += 1
+    lines.append(f"## {section}. Latency Analysis")
     lines.append("")
     lat_dist = generate_latency_distribution(results, str(charts_dir / "latency.png"))
     if lat_dist:
@@ -716,7 +774,8 @@ def generate_report(
 
     # ─── Ablation Study ───
     if ablation_results:
-        lines.append("## 8. Ablation Study")
+        section += 1
+        lines.append(f"## {section}. Ablation Study")
         lines.append("")
         lines.append("Each configuration isolates one V2 component to measure its contribution.")
         lines.append("")
@@ -736,9 +795,34 @@ def generate_report(
     # ─── Error Analysis ───
     mismatches = acc.get("mismatches", [])
     if mismatches:
-        lines.append("## 9. Error Analysis")
+        section += 1
+        lines.append(f"## {section}. Error Analysis")
         lines.append("")
-        lines.append(f"Misclassified samples ({len(mismatches)} shown):")
+
+        # Categorize errors
+        error_cats = {
+            "true_as_false": 0, "true_as_partial": 0, "true_as_unknown": 0,
+            "false_as_true": 0, "false_as_partial": 0, "false_as_unknown": 0,
+            "partial_as_true": 0, "partial_as_false": 0, "partial_as_unknown": 0,
+        }
+        for m in mismatches:
+            key = f"{m['gold']}_as_{m['predicted']}"
+            if key in error_cats:
+                error_cats[key] += 1
+
+        # Show error distribution
+        active_cats = {k: v for k, v in error_cats.items() if v > 0}
+        if active_cats:
+            lines.append("### Error Distribution")
+            lines.append("")
+            lines.append("| Error Type | Count |")
+            lines.append("|-----------|-------|")
+            for cat, count in sorted(active_cats.items(), key=lambda x: -x[1]):
+                gold, _, pred = cat.partition("_as_")
+                lines.append(f"| {gold.title()} misclassified as {pred.title()} | {count} |")
+            lines.append("")
+
+        lines.append(f"### Misclassified Samples ({len(mismatches)} shown)")
         lines.append("")
         lines.append("| Input | Gold | Predicted |")
         lines.append("|-------|------|-----------|")
@@ -747,7 +831,8 @@ def generate_report(
         lines.append("")
 
     # ─── Discussion ───
-    lines.append("## 10. Discussion")
+    section += 1
+    lines.append(f"## {section}. Discussion")
     lines.append("")
 
     if comparison and single_shot_metrics:
@@ -901,8 +986,40 @@ def generate_report(
             )
         lines.append("")
 
+    # Limitations
+    lines.append("### Limitations")
+    lines.append("")
+    n_total = len(results)
+    n_domains = len(acc.get("per_domain", {}))
+    lines.append(
+        f"- **Sample size:** This evaluation covers {n_total} claims. "
+        f"Larger sample sizes would increase statistical power and reduce confidence intervals."
+    )
+    if per_diff:
+        diff_counts = {d: per_diff[d]["total"] for d in ["easy", "medium", "hard"] if d in per_diff}
+        total_claims = sum(diff_counts.values())
+        if total_claims > 0:
+            easy_pct = diff_counts.get("easy", 0) / total_claims * 100
+            hard_pct = diff_counts.get("hard", 0) / total_claims * 100
+            if easy_pct > 50:
+                lines.append(
+                    f"- **Difficulty distribution:** The dataset skews toward easy claims "
+                    f"({easy_pct:.0f}% easy, {hard_pct:.0f}% hard). Results on hard claims "
+                    f"have wider confidence intervals due to smaller sample sizes."
+                )
+    lines.append(
+        f"- **Domain coverage:** {n_domains} domains are represented. "
+        f"Performance may vary on domains outside this benchmark."
+    )
+    lines.append(
+        "- **Classifier dependency:** Accuracy metrics depend on the automated output classifier. "
+        "Human evaluation would provide ground truth validation of the classifier's assessments."
+    )
+    lines.append("")
+
     # ─── Conclusions ───
-    lines.append("## 11. Conclusions")
+    section += 1
+    lines.append(f"## {section}. Conclusions")
     lines.append("")
 
     if comparison and single_shot_metrics:
