@@ -29,13 +29,14 @@ def _extract_verdict_section(text: str) -> str:
     # Look for common verdict section headers (bold or H2) — broad matching
     header_keywords = (
         r"overall assessment|overall|conclusion|verdict|final assessment|"
-        r"bottom line|accuracy assessment|assessment|summary|"
+        r"initial assessment|bottom line|accuracy assessment|assessment|summary|"
         r"in summary|key takeaway|final verdict|the bottom line|"
         r"additional context|scientific consensus|important caveats|"
         r"more accurate framing|the actual situation|current status|"
         r"scientific basis|key findings|important context|"
         r"more complete picture|more accurate framework|"
-        r"problematic aspects|what the evidence shows"
+        r"problematic aspects|what the evidence shows|"
+        r"evidence-based assessment|evidence-based conclusion"
     )
     patterns = [
         rf'\*\*(?:{header_keywords})[:\s]*\*\*\s*(.*)',
@@ -404,6 +405,18 @@ def _classify_output(output: str) -> str:
     ]
     if any(s in text for s in true_signals_weak):
         return "true"
+
+    # Full-text false signals (broader than closer, catches mid-text verdicts)
+    false_signals_weak = [
+        "this claim is false", "this claim is incorrect",
+        "this claim is not true", "the claim is false",
+        "the claim is incorrect", "the claim is not true",
+        "this statement is false", "this statement is incorrect",
+        "this is a myth", "this is a popular myth",
+        "this claim is a myth", "widely debunked myth",
+    ]
+    if any(s in text for s in false_signals_weak):
+        return "false"
 
     # Verdict section analysis (V1 structured outputs with **Overall:** etc.)
     if verdict_section:
