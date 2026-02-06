@@ -35,7 +35,16 @@ def _classify_output(output: str) -> str:
         "depends on what criteria", "depends on the definition",
         "it's complicated", "it depends",
         "small but important correction", "important correction",
+        "small correction", "a correction",
         "important nuance", "with a caveat",
+        "more complex than", "a bit more complex",
+        "more nuanced than", "bit more nuanced",
+        "the short answer is yes, but", "the short answer is no, but",
+        "is a simplification", "is an oversimplification",
+        "technically", "but with caveats",
+        "let me clarify", "needs some clarification",
+        "there's a small correction", "a bit of clarification",
+        "the answer is both yes and no",
     ]
     if any(s in opener for s in partial_signals):
         return "partial"
@@ -52,6 +61,11 @@ def _classify_output(output: str) -> str:
         "not exactly", "not quite", "are not the same",
         "is not the same", "isn't the same", "isn't exactly",
         "aren't the same", "not really",
+        "common point of confusion", "common misunderstanding",
+        "a common belief but", "widely believed but",
+        "related but distinct", "related but different",
+        "no scientific evidence", "no evidence",
+        "has been disproven", "has been debunked",
     ]
     if any(s in opener for s in false_signals):
         return "false"
@@ -63,11 +77,19 @@ def _classify_output(output: str) -> str:
         "that's true", "is true",
         "that's absolutely correct", "absolutely correct",
         "you're absolutely correct", "you're correct",
+        "you're absolutely right", "you're right",
         "verified", "confirmed",
-        "that's right", "you're right",
+        "that's right",
         "well-established",
         "great approximation", "good approximation",
         "a great approximation", "a good approximation",
+        "you're referring to a key", "you're spot on",
+        "this is widely accepted", "widely accepted",
+        "this is a well-known fact",
+        "fascinating statistic! you're",
+        "fascinating comparison",
+        "that's a great question! yes",
+        "yes, that's", "yes! that's",
     ]
     if any(s in opener for s in true_signals_strong):
         return "true"
@@ -78,10 +100,12 @@ def _classify_output(output: str) -> str:
         "this statement is correct", "this statement is accurate",
         "the answer is yes", "this is indeed",
         "scientifically accurate", "factually accurate",
-        "this is a well-known fact", "this is widely accepted",
         "this is generally considered to be true",
         "this comparison is actually correct",
         "the claim is accurate", "the statement is accurate",
+        "believed to be true by", "widely believed to be true",
+        "the statement is true", "the claim is true",
+        "is generally accurate", "is broadly correct",
     ]
     if any(s in text for s in true_signals_weak):
         return "true"

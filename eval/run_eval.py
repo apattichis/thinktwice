@@ -98,11 +98,25 @@ async def run_all(dataset: list[dict], dataset_name: str, output_dir: str, max_s
         single_shot_metrics=ss_metrics,
     )
 
-    print(f"\n--- Summary ---")
-    print(f"Single-shot accuracy: {ss_metrics['accuracy']['accuracy']:.1%}")
-    print(f"V1 accuracy:          {comparison['v1_metrics']['accuracy']['accuracy']:.1%}")
-    print(f"V2 accuracy:          {comparison['v2_metrics']['accuracy']['accuracy']:.1%}")
-    print(f"\nReport generated: {report_path}")
+    v1m = comparison['v1_metrics']
+    v2m = comparison['v2_metrics']
+
+    print(f"\n{'='*60}")
+    print(f"  RESULTS SUMMARY")
+    print(f"{'='*60}")
+    print(f"\n  {'Metric':<22} {'Single-Shot':>12} {'V1':>12} {'V2':>12}")
+    print(f"  {'-'*58}")
+    print(f"  {'Accuracy':<22} {ss_metrics['accuracy']['accuracy']:>11.1%} {v1m['accuracy']['accuracy']:>11.1%} {v2m['accuracy']['accuracy']:>11.1%}")
+    print(f"  {'Macro F1':<22} {ss_metrics['classification']['macro']['f1']:>11.3f} {v1m['classification']['macro']['f1']:>11.3f} {v2m['classification']['macro']['f1']:>11.3f}")
+    print(f"  {'Weighted F1':<22} {ss_metrics['classification']['weighted']['f1']:>11.3f} {v1m['classification']['weighted']['f1']:>11.3f} {v2m['classification']['weighted']['f1']:>11.3f}")
+    print(f"  {'Mean Latency':<22} {ss_metrics['latency']['mean_ms']/1000:>10.1f}s {v1m['latency']['mean_ms']/1000:>10.1f}s {v2m['latency']['mean_ms']/1000:>10.1f}s")
+
+    sig = comparison.get('statistical_significance', {})
+    if sig:
+        print(f"\n  Statistical Significance (V2 vs V1):")
+        print(f"    t={sig.get('t_stat', 0):.4f}, p={sig.get('p_approx', 1):.6f} {'(significant)' if sig.get('significant') else '(not significant)'}")
+
+    print(f"\n  Report: {report_path}")
     return ss_results, v1_results, v2_results, comparison
 
 
