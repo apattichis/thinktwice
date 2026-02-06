@@ -2,6 +2,7 @@
 
 Usage:
     python eval/run_eval.py --dataset factcheck_bench --pipeline thinktwice --output results/
+    python eval/run_eval.py --dataset ifeval --pipeline all --output results/ --samples 120
     python eval/run_eval.py --dataset truthfulqa --pipeline all --output results/ --samples 100
     python eval/run_eval.py --ablation --dataset factcheck_bench --output results/
     python eval/run_eval.py --report --input results/ --output results/
@@ -19,8 +20,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 sys.path.insert(0, str(Path(__file__).parent.parent / "backend"))
 
 from eval.runner import EvalRunner
-from eval.metrics import compute_all_metrics
-from eval.report import generate_report
+from eval.dataset_types import get_dataset_type, get_metrics_for_dataset, get_report_for_dataset
 from eval.compare import compare_pipelines
 
 
@@ -48,8 +48,11 @@ def get_dataset(name: str, max_samples: int | None = None) -> list[dict]:
     elif name == "halueval":
         from eval.datasets.halueval import get_dataset
         return get_dataset(max_samples=max_samples)
+    elif name == "ifeval":
+        from eval.datasets.ifeval import get_dataset
+        return get_dataset(max_samples=max_samples)
     else:
-        raise ValueError(f"Unknown dataset: {name}. Choose from: factcheck50, factcheck_bench, truthfulqa, halueval")
+        raise ValueError(f"Unknown dataset: {name}. Choose from: factcheck50, factcheck_bench, truthfulqa, halueval, ifeval")
 
 
 async def run_pipeline(dataset: list[dict], dataset_name: str, version: str, output_dir: str, max_samples: int | None = None, resume_from: str | None = None):
@@ -60,50 +63,96 @@ async def run_pipeline(dataset: list[dict], dataset_name: str, version: str, out
     return results
 
 
-async def run_all(dataset: list[dict], dataset_name: str, output_dir: str, max_samples: int | None = None):
-    """Run single-shot baseline and ThinkTwice on the same dataset and compare.
+async def _post_process(results: list[dict], dataset_name: str) -> list[dict]:
+    """Run dataset-specific post-processing (e.g., LLM judge for TruthfulQA)."""
+    dtype = get_dataset_type(dataset_name)
 
-    Two baselines:
-    - Single-shot: Raw Claude API call, no pipeline (control group)
-    - ThinkTwice: Self-correcting pipeline with gating, iteration, and trust ranking
-    """
+    if dtype == "truthfulqa":
+        from eval.truthfulqa_metrics import judge_batch
+        results = await judge_batch(results)
+
+    elif dtype == "ifeval":
+        from eval.ifeval_metrics import judge_all
+        results = judge_all(results)
+
+    return results
+
+
+async def run_all(dataset: list[dict], dataset_name: str, output_dir: str, max_samples: int | None = None):
+    """Run single-shot baseline and ThinkTwice on the same dataset and compare."""
+    dtype = get_dataset_type(dataset_name)
+
     print(f"\n{'='*60}")
     print(f"  Running SINGLE-SHOT baseline on {dataset_name}...")
     print(f"{'='*60}\n")
     ss_results = await run_pipeline(dataset, dataset_name, "single_shot", f"{output_dir}/single_shot", max_samples)
+    ss_results = await _post_process(ss_results, dataset_name)
 
     print(f"\n{'='*60}")
     print(f"  Running THINKTWICE pipeline on {dataset_name}...")
     print(f"{'='*60}\n")
     tt_results = await run_pipeline(dataset, dataset_name, "thinktwice", f"{output_dir}/thinktwice", max_samples)
+    tt_results = await _post_process(tt_results, dataset_name)
 
     # Compare pipelines
-    comparison = compare_pipelines(ss_results, tt_results)
+    comparison = compare_pipelines(ss_results, tt_results, dataset_name=dataset_name)
 
-    # Compute single-shot metrics for the report
-    ss_metrics = compute_all_metrics(ss_results)
+    # Compute single-shot metrics
+    ss_metrics = get_metrics_for_dataset(dataset_name, ss_results)
 
-    # Generate report with both baselines
-    report_path = generate_report(
-        tt_results,
-        dataset_name,
+    # Generate report
+    report_path = get_report_for_dataset(
+        dataset_name, tt_results,
         output_dir=output_dir,
         comparison=comparison,
         single_shot_metrics=ss_metrics,
     )
 
-    ssm = ss_metrics
+    _print_summary(dataset_name, ss_metrics, comparison, report_path)
+    return ss_results, tt_results, comparison
+
+
+def _print_summary(dataset_name: str, ss_metrics: dict, comparison: dict, report_path: str):
+    """Print results summary adapted to the dataset type."""
+    dtype = get_dataset_type(dataset_name)
     ttm = comparison['thinktwice_metrics']
 
     print(f"\n{'='*60}")
     print(f"  RESULTS SUMMARY")
     print(f"{'='*60}")
-    print(f"\n  {'Metric':<22} {'Single-Shot':>12} {'ThinkTwice':>12}")
-    print(f"  {'-'*46}")
-    print(f"  {'Accuracy':<22} {ssm['accuracy']['accuracy']:>11.1%} {ttm['accuracy']['accuracy']:>11.1%}")
-    print(f"  {'Macro F1':<22} {ssm['classification']['macro']['f1']:>11.3f} {ttm['classification']['macro']['f1']:>11.3f}")
-    print(f"  {'Weighted F1':<22} {ssm['classification']['weighted']['f1']:>11.3f} {ttm['classification']['weighted']['f1']:>11.3f}")
-    print(f"  {'Mean Latency':<22} {ssm['latency']['mean_ms']/1000:>10.1f}s {ttm['latency']['mean_ms']/1000:>10.1f}s")
+
+    if dtype == "ifeval":
+        ssm = ss_metrics
+        print(f"\n  {'Metric':<30} {'Single-Shot':>12} {'ThinkTwice':>12}")
+        print(f"  {'-'*54}")
+        print(f"  {'Prompt Strict Acc':<30} {ssm.get('prompt_strict_accuracy', 0):>11.1%} {ttm.get('prompt_strict_accuracy', 0):>11.1%}")
+        print(f"  {'Instr Strict Acc':<30} {ssm.get('instruction_strict_accuracy', 0):>11.1%} {ttm.get('instruction_strict_accuracy', 0):>11.1%}")
+        print(f"  {'Prompt Loose Acc':<30} {ssm.get('prompt_loose_accuracy', 0):>11.1%} {ttm.get('prompt_loose_accuracy', 0):>11.1%}")
+        print(f"  {'Instr Loose Acc':<30} {ssm.get('instruction_loose_accuracy', 0):>11.1%} {ttm.get('instruction_loose_accuracy', 0):>11.1%}")
+        ss_lat = ssm.get('latency', {})
+        tt_lat = ttm.get('latency', {})
+        print(f"  {'Mean Latency':<30} {ss_lat.get('mean_ms', 0)/1000:>10.1f}s {tt_lat.get('mean_ms', 0)/1000:>10.1f}s")
+
+    elif dtype == "truthfulqa":
+        ssm = ss_metrics
+        print(f"\n  {'Metric':<30} {'Single-Shot':>12} {'ThinkTwice':>12}")
+        print(f"  {'-'*54}")
+        print(f"  {'Truthful + Informative':<30} {ssm.get('truthful_informative_rate', 0):>11.1%} {ttm.get('truthful_informative_rate', 0):>11.1%}")
+        print(f"  {'Truthful Rate':<30} {ssm.get('truthful_rate', 0):>11.1%} {ttm.get('truthful_rate', 0):>11.1%}")
+        print(f"  {'Informative Rate':<30} {ssm.get('informative_rate', 0):>11.1%} {ttm.get('informative_rate', 0):>11.1%}")
+        ss_lat = ssm.get('latency', {})
+        tt_lat = ttm.get('latency', {})
+        print(f"  {'Mean Latency':<30} {ss_lat.get('mean_ms', 0)/1000:>10.1f}s {tt_lat.get('mean_ms', 0)/1000:>10.1f}s")
+
+    else:
+        # Factcheck-style metrics
+        ssm = ss_metrics
+        print(f"\n  {'Metric':<22} {'Single-Shot':>12} {'ThinkTwice':>12}")
+        print(f"  {'-'*46}")
+        print(f"  {'Accuracy':<22} {ssm['accuracy']['accuracy']:>11.1%} {ttm['accuracy']['accuracy']:>11.1%}")
+        print(f"  {'Macro F1':<22} {ssm['classification']['macro']['f1']:>11.3f} {ttm['classification']['macro']['f1']:>11.3f}")
+        print(f"  {'Weighted F1':<22} {ssm['classification']['weighted']['f1']:>11.3f} {ttm['classification']['weighted']['f1']:>11.3f}")
+        print(f"  {'Mean Latency':<22} {ssm['latency']['mean_ms']/1000:>10.1f}s {ttm['latency']['mean_ms']/1000:>10.1f}s")
 
     sig = comparison.get('statistical_significance', {})
     if sig:
@@ -116,12 +165,12 @@ async def run_all(dataset: list[dict], dataset_name: str, output_dir: str, max_s
             print(f"    t={sig.get('t_stat', 0):.4f}, p={sig.get('p_approx', 1):.6f} {'(significant)' if sig.get('significant') else '(not significant)'}")
 
     print(f"\n  Report: {report_path}")
-    return ss_results, tt_results, comparison
 
 
 async def run_ablation(dataset: list[dict], dataset_name: str, output_dir: str, max_samples: int | None = None):
     """Run ablation study."""
     from eval.ablation import run_ablation as _run_ablation
+    from eval.metrics import compute_all_metrics
 
     print(f"\n{'='*60}")
     print(f"Running ablation study on {dataset_name}...")
@@ -131,7 +180,6 @@ async def run_ablation(dataset: list[dict], dataset_name: str, output_dir: str, 
         dataset, dataset_name, output_dir=output_dir, max_samples=max_samples
     )
 
-    # Compute metrics per config
     for config_name, results in ablation_results.items():
         metrics = compute_all_metrics(results)
         print(f"\n{config_name}:")
@@ -139,7 +187,7 @@ async def run_ablation(dataset: list[dict], dataset_name: str, output_dir: str, 
         print(f"  Constraint Satisfaction: {metrics['constraint_satisfaction']['satisfaction_rate']:.1%}")
         print(f"  Mean Latency: {metrics['latency']['mean_ms']/1000:.1f}s")
 
-    # Generate report with ablation
+    from eval.report import generate_report
     report_path = generate_report(
         ablation_results.get("thinktwice_full", []),
         dataset_name,
@@ -158,7 +206,6 @@ async def generate_report_from_files(input_dir: str, output_dir: str):
         print(f"No result files found in {input_dir}")
         return
 
-    # Load the most recent result file
     result_files.sort(key=lambda f: f.stat().st_mtime, reverse=True)
     latest = result_files[0]
     print(f"Loading results from: {latest}")
@@ -169,7 +216,7 @@ async def generate_report_from_files(input_dir: str, output_dir: str):
     results = data.get("results", [])
     dataset_name = data.get("dataset", "unknown")
 
-    report_path = generate_report(results, dataset_name, output_dir=output_dir)
+    report_path = get_report_for_dataset(dataset_name, results, output_dir=output_dir)
     print(f"Report generated: {report_path}")
 
 
@@ -180,13 +227,14 @@ def main():
         epilog="""
 Examples:
   python eval/run_eval.py --dataset factcheck_bench --pipeline thinktwice
-  python eval/run_eval.py --dataset truthfulqa --pipeline all --samples 50
+  python eval/run_eval.py --dataset ifeval --pipeline all --samples 120
+  python eval/run_eval.py --dataset truthfulqa --pipeline all --samples 100
   python eval/run_eval.py --ablation --dataset factcheck_bench
   python eval/run_eval.py --report --input results/
         """,
     )
 
-    parser.add_argument("--dataset", choices=["factcheck50", "factcheck_bench", "truthfulqa", "halueval"],
+    parser.add_argument("--dataset", choices=["factcheck50", "factcheck_bench", "truthfulqa", "halueval", "ifeval"],
                         help="Dataset to evaluate on")
     parser.add_argument("--pipeline", choices=["thinktwice", "single_shot", "all"], default="thinktwice",
                         help="Pipeline version: thinktwice, single_shot, or all (runs both)")
@@ -218,13 +266,28 @@ Examples:
     else:
         async def _run():
             results = await run_pipeline(dataset, args.dataset, args.pipeline, args.output, args.samples, resume_from=args.resume)
-            metrics = compute_all_metrics(results)
-            print(f"\nResults ({len(results)} samples):")
-            print(f"  Accuracy: {metrics['accuracy']['accuracy']:.1%}")
-            print(f"  Constraint Satisfaction: {metrics['constraint_satisfaction']['satisfaction_rate']:.1%}")
-            print(f"  Mean Latency: {metrics['latency']['mean_ms']/1000:.1f}s")
+            results = await _post_process(results, args.dataset)
+            metrics = get_metrics_for_dataset(args.dataset, results)
 
-            report_path = generate_report(results, args.dataset, output_dir=args.output)
+            dtype = get_dataset_type(args.dataset)
+            print(f"\nResults ({len(results)} samples):")
+
+            if dtype == "ifeval":
+                print(f"  Prompt Strict Accuracy: {metrics.get('prompt_strict_accuracy', 0):.1%}")
+                print(f"  Instruction Strict Accuracy: {metrics.get('instruction_strict_accuracy', 0):.1%}")
+                print(f"  Prompt Loose Accuracy: {metrics.get('prompt_loose_accuracy', 0):.1%}")
+                print(f"  Mean Latency: {metrics.get('latency', {}).get('mean_ms', 0)/1000:.1f}s")
+            elif dtype == "truthfulqa":
+                print(f"  Truthful + Informative: {metrics.get('truthful_informative_rate', 0):.1%}")
+                print(f"  Truthful Rate: {metrics.get('truthful_rate', 0):.1%}")
+                print(f"  Informative Rate: {metrics.get('informative_rate', 0):.1%}")
+                print(f"  Mean Latency: {metrics.get('latency', {}).get('mean_ms', 0)/1000:.1f}s")
+            else:
+                print(f"  Accuracy: {metrics['accuracy']['accuracy']:.1%}")
+                print(f"  Constraint Satisfaction: {metrics['constraint_satisfaction']['satisfaction_rate']:.1%}")
+                print(f"  Mean Latency: {metrics['latency']['mean_ms']/1000:.1f}s")
+
+            report_path = get_report_for_dataset(args.dataset, results, output_dir=args.output)
             print(f"\nReport: {report_path}")
 
         asyncio.run(_run())

@@ -230,10 +230,10 @@ class EvalRunner:
 
             result = await self.run_single(sample["input"], sample.get("mode", "question"))
 
-            # Attach gold data if present
-            for key in ["gold_verdict", "gold_explanation", "domain", "difficulty"]:
-                if key in sample:
-                    result[key] = sample[key]
+            # Attach all sample metadata (gold data, domain, etc.)
+            for key, value in sample.items():
+                if key not in ("input", "mode"):
+                    result[key] = value
 
             self.results.append(result)
 

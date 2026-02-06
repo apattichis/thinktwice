@@ -25,13 +25,16 @@ def load_results(path: str) -> list[dict]:
 def compare_pipelines(
     ss_results: list[dict],
     tt_results: list[dict],
+    dataset_name: str = "factcheck_bench",
 ) -> dict:
     """Compare single-shot and ThinkTwice results side-by-side.
 
     Returns comparison metrics and example diffs.
     """
-    ss_metrics = compute_all_metrics(ss_results)
-    tt_metrics = compute_all_metrics(tt_results)
+    from eval.dataset_types import get_metrics_for_dataset, get_correct_fn
+    ss_metrics = get_metrics_for_dataset(dataset_name, ss_results)
+    tt_metrics = get_metrics_for_dataset(dataset_name, tt_results)
+    correct_fn = get_correct_fn(dataset_name)
 
     # Per-sample comparison (match by input)
     ss_by_input = {r["input"]: r for r in ss_results}
@@ -61,7 +64,7 @@ def compare_pipelines(
         paired_diffs.append(diff)
 
     # Statistical significance -- McNemar's test on correctness
-    mcnemar_result = _mcnemar_test(ss_results, tt_results) if common_inputs else None
+    mcnemar_result = _mcnemar_test(ss_results, tt_results, correct_fn=correct_fn) if common_inputs else None
 
     # Supplementary: paired t-test on confidence deltas
     confidence_deltas = [d["confidence_delta"] for d in paired_diffs]
@@ -109,7 +112,7 @@ def _is_correct(result: dict) -> bool:
     return False
 
 
-def _mcnemar_test(a_results: list[dict], b_results: list[dict]) -> dict:
+def _mcnemar_test(a_results: list[dict], b_results: list[dict], correct_fn=None) -> dict:
     """McNemar's test for paired classifier comparison.
 
     Standard test for comparing two classifiers on the same dataset.
@@ -133,14 +136,15 @@ def _mcnemar_test(a_results: list[dict], b_results: list[dict]) -> dict:
     b_only = 0          # c: A wrong, B correct
     both_wrong = 0      # d
 
+    if correct_fn is None:
+        correct_fn = _is_correct
+
     for inp in common:
         ra = a_by_input[inp]
         rb = b_by_input[inp]
-        if ra.get("gold_verdict") is None:
-            continue
 
-        a_ok = _is_correct(ra)
-        b_ok = _is_correct(rb)
+        a_ok = correct_fn(ra)
+        b_ok = correct_fn(rb)
 
         if a_ok and b_ok:
             both_correct += 1
