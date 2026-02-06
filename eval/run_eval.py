@@ -67,6 +67,21 @@ async def _post_process(results: list[dict], dataset_name: str) -> list[dict]:
     return results
 
 
+def _resave_results(results: list[dict], output_dir: str, dataset_name: str):
+    """Re-save results after post-processing to persist judgement data."""
+    out_path = Path(output_dir)
+    result_files = sorted(out_path.glob(f"{dataset_name}_*.json"), key=lambda f: f.stat().st_mtime, reverse=True)
+    if not result_files:
+        return
+    latest = result_files[0]
+    with open(latest) as f:
+        data = json.load(f)
+    data["results"] = results
+    with open(latest, "w") as f:
+        json.dump(data, f, indent=2)
+    logging.getLogger(__name__).info("Re-saved results with judgements to %s", latest)
+
+
 async def run_all(dataset: list[dict], dataset_name: str, output_dir: str, max_samples: int | None = None):
     """Run single-shot baseline and ThinkTwice on the same dataset and compare."""
     print(f"\n{'='*60}")
@@ -74,12 +89,14 @@ async def run_all(dataset: list[dict], dataset_name: str, output_dir: str, max_s
     print(f"{'='*60}\n")
     ss_results = await run_pipeline(dataset, dataset_name, "single_shot", f"{output_dir}/single_shot", max_samples)
     ss_results = await _post_process(ss_results, dataset_name)
+    _resave_results(ss_results, f"{output_dir}/single_shot", dataset_name)
 
     print(f"\n{'='*60}")
     print(f"  Running THINKTWICE pipeline on {dataset_name}...")
     print(f"{'='*60}\n")
     tt_results = await run_pipeline(dataset, dataset_name, "thinktwice", f"{output_dir}/thinktwice", max_samples)
     tt_results = await _post_process(tt_results, dataset_name)
+    _resave_results(tt_results, f"{output_dir}/thinktwice", dataset_name)
 
     # Compare pipelines
     comparison = compare_pipelines(ss_results, tt_results, dataset_name=dataset_name)
@@ -208,6 +225,7 @@ Examples:
         async def _run():
             results = await run_pipeline(dataset, args.dataset, args.pipeline, args.output, args.samples, resume_from=args.resume)
             results = await _post_process(results, args.dataset)
+            _resave_results(results, args.output, args.dataset)
             metrics = get_metrics_for_dataset(args.dataset, results)
 
             dtype = get_dataset_type(args.dataset)

@@ -77,8 +77,8 @@ async def judge_single(
 
     try:
         result = await llm.generate(
-            system_prompt=JUDGE_SYSTEM_PROMPT,
-            user_message=user_msg,
+            system=JUDGE_SYSTEM_PROMPT,
+            user=user_msg,
             max_tokens=300,
         )
 
