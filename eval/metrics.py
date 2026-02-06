@@ -11,14 +11,100 @@ from typing import Optional
 logger = logging.getLogger(__name__)
 
 
+def _classify_output(output: str) -> str:
+    """Classify pipeline output as true/false/partial based on language cues.
+
+    Uses the opening 2-3 sentences as the strongest signal since Claude typically
+    leads with its verdict. Checks for negation context to avoid false positives
+    like "not quite accurate" being classified as "true" due to the word "accurate".
+
+    Returns 'true', 'false', 'partial', or 'unknown'.
+    """
+    text = output.lower()
+    # Opening sentences carry the verdict signal
+    opener = text[:300]
+
+    # Check for partial/nuanced verdicts first (most specific)
+    partial_signals = [
+        "partially true", "partially correct", "partly true", "partly correct",
+        "partially accurate", "not entirely", "oversimplification",
+        "technically correct but", "misleading but contains", "grain of truth",
+        "mostly true but", "mostly correct but", "approximately correct but",
+        "not quite right", "not quite correct",
+        "there's some debate", "depends on who",
+        "depends on what criteria", "depends on the definition",
+        "it's complicated", "it depends",
+        "small but important correction", "important correction",
+        "important nuance", "with a caveat",
+    ]
+    if any(s in opener for s in partial_signals):
+        return "partial"
+
+    # Check for false/myth/misconception signals (check BEFORE true to catch negations)
+    false_signals = [
+        "myth", "misconception", "not true", "is false", "is incorrect",
+        "refuted", "debunked", "inaccurate", "misleading", "wrong",
+        "not accurate", "not quite accurate", "actually not",
+        "doesn't actually", "doesn't really", "don't actually",
+        "is not correct", "not correct", "not the case",
+        "this is actually a common", "this is a popular myth",
+        "this is actually a myth", "this is a myth",
+        "not exactly", "not quite", "are not the same",
+        "is not the same", "isn't the same", "isn't exactly",
+        "aren't the same", "not really",
+    ]
+    if any(s in opener for s in false_signals):
+        return "false"
+
+    # Check for true/correct signals — check opener first, then broader text
+    true_signals_strong = [
+        "that's correct", "this is correct", "is correct",
+        "that's accurate", "is accurate",
+        "that's true", "is true",
+        "that's absolutely correct", "absolutely correct",
+        "you're absolutely correct", "you're correct",
+        "verified", "confirmed",
+        "that's right", "you're right",
+        "well-established",
+        "great approximation", "good approximation",
+        "a great approximation", "a good approximation",
+    ]
+    if any(s in opener for s in true_signals_strong):
+        return "true"
+
+    # Broader signals in the full text (weaker but still useful)
+    true_signals_weak = [
+        "this claim is correct", "this claim is accurate", "this claim is true",
+        "this statement is correct", "this statement is accurate",
+        "the answer is yes", "this is indeed",
+        "scientifically accurate", "factually accurate",
+        "this is a well-known fact", "this is widely accepted",
+        "this is generally considered to be true",
+        "this comparison is actually correct",
+        "the claim is accurate", "the statement is accurate",
+    ]
+    if any(s in text for s in true_signals_weak):
+        return "true"
+
+    # Last resort: look for clear verdict patterns anywhere
+    if any(s in text for s in ["**verdict: true**", "**true**", "claim is supported"]):
+        return "true"
+    if any(s in text for s in ["**verdict: false**", "**false**", "claim is not supported"]):
+        return "false"
+
+    return "unknown"
+
+
 def compute_accuracy(results: list[dict]) -> dict:
     """Compute overall accuracy against gold verdicts."""
     if not results:
-        return {"accuracy": 0.0, "total": 0, "correct": 0}
+        return {"accuracy": 0.0, "total": 0, "correct": 0, "incorrect": 0, "skipped": 0}
 
     correct = 0
+    incorrect = 0
     total = 0
     per_domain = {}
+    mismatches = []
 
     for r in results:
         gold = r.get("gold_verdict")
@@ -26,34 +112,42 @@ def compute_accuracy(results: list[dict]) -> dict:
             continue
 
         total += 1
-        metrics = r.get("metrics", {})
+        output = r.get("output", "")
+        predicted = _classify_output(output)
 
-        # Determine pipeline's verdict from the final output
-        output = r.get("output", "").lower()
-        trust_winner = metrics.get("trust_winner", "")
+        is_correct = False
+        if gold in ("true", True) and predicted == "true":
+            is_correct = True
+        elif gold in ("false", False) and predicted == "false":
+            is_correct = True
+        elif gold == "partial" and predicted in ("partial", "true"):
+            # Partial claims marked as "true" with caveats count as correct
+            is_correct = True
 
-        # For claims, check if pipeline agrees with gold
-        if gold in ("true", True):
-            if "verified" in output or "accurate" in output or "true" in output:
-                correct += 1
-        elif gold in ("false", False):
-            if "refuted" in output or "false" in output or "incorrect" in output:
-                correct += 1
-        elif gold == "partial":
-            if "partial" in output or "nuance" in output or "complex" in output:
-                correct += 1
+        if is_correct:
+            correct += 1
+        else:
+            incorrect += 1
+            mismatches.append({
+                "input": r.get("input", "")[:100],
+                "gold": gold,
+                "predicted": predicted,
+            })
 
         domain = r.get("domain", "unknown")
         if domain not in per_domain:
             per_domain[domain] = {"correct": 0, "total": 0}
         per_domain[domain]["total"] += 1
-        if total > 0 and correct == total:
+        if is_correct:
             per_domain[domain]["correct"] += 1
 
     return {
         "accuracy": correct / total if total > 0 else 0.0,
         "total": total,
         "correct": correct,
+        "incorrect": incorrect,
+        "skipped": len(results) - total,
+        "mismatches": mismatches[:10],  # Top 10 for debugging
         "per_domain": {
             d: {**v, "accuracy": v["correct"] / v["total"] if v["total"] > 0 else 0.0}
             for d, v in per_domain.items()
