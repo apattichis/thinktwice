@@ -38,13 +38,27 @@ def _classify_output(output: str) -> str:
         "small correction", "a correction",
         "important nuance", "with a caveat",
         "more complex than", "a bit more complex",
-        "more nuanced than", "bit more nuanced",
+        "more nuanced than", "bit more nuanced", "more nuanced",
         "the short answer is yes, but", "the short answer is no, but",
         "is a simplification", "is an oversimplification",
         "technically", "but with caveats",
         "let me clarify", "needs some clarification",
         "there's a small correction", "a bit of clarification",
         "the answer is both yes and no",
+        "some truth but", "contains some truth",
+        "this statement contains some truth",
+        "mixed evidence", "mixed scientific evidence",
+        "debated topic", "remains debated", "debated among",
+        "highly debated", "remains a highly debated",
+        "depends on how you measure", "depends on the measure",
+        "bold prediction", "a bold prediction",
+        "i'd like to clarify",
+        "significant promise", "shows significant promise",
+        "significant but", "significant, but",
+        "both its benefits and limitations",
+        "though the exact numbers",
+        "can vary by",
+        "worth noting some important context",
     ]
     if any(s in opener for s in partial_signals):
         return "partial"
@@ -66,6 +80,20 @@ def _classify_output(output: str) -> str:
         "related but distinct", "related but different",
         "no scientific evidence", "no evidence",
         "has been disproven", "has been debunked",
+        "isn't necessarily", "not necessarily",
+        "limited scientific evidence",
+        "not medically accurate",
+        "not found a causal link", "not found a link",
+        "hasn't been shown", "has not been shown",
+        "isn't completely", "not completely",
+        "is a continent, not", "is a continent",
+        "actually a real technical problem",
+        "not a hoax", "isn't a hoax",
+        "not considered scientifically reliable",
+        "less reliable",
+        "generally safe for most",
+        "aren't necessarily",
+        "doesn't pose", "do not pose",
     ]
     if any(s in opener for s in false_signals):
         return "false"
@@ -90,6 +118,13 @@ def _classify_output(output: str) -> str:
         "fascinating comparison",
         "that's a great question! yes",
         "yes, that's", "yes! that's",
+        "a significant milestone",
+        "that's a reasonable estimate",
+        "a pivotal moment",
+        "did surpass", "has surpassed",
+        "did indeed", "was indeed",
+        "yes, the us national debt",
+        "yes, human sacrifice was indeed",
     ]
     if any(s in opener for s in true_signals_strong):
         return "true"
@@ -106,6 +141,8 @@ def _classify_output(output: str) -> str:
         "believed to be true by", "widely believed to be true",
         "the statement is true", "the claim is true",
         "is generally accurate", "is broadly correct",
+        "commonly cited and highlights",
+        "well-supported scientific",
     ]
     if any(s in text for s in true_signals_weak):
         return "true"
