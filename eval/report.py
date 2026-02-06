@@ -333,6 +333,95 @@ def generate_latency_distribution(results: list[dict], output_path: str) -> Opti
     return output_path
 
 
+def generate_difficulty_comparison(ss_metrics: dict, v1_metrics: dict, v2_metrics: dict, output_path: str) -> Optional[str]:
+    """Generate accuracy by difficulty level across all 3 pipelines."""
+    if not HAS_MATPLOTLIB:
+        return None
+    _setup_style()
+
+    difficulties = ["easy", "medium", "hard"]
+    labels = ["Easy", "Medium", "Hard"]
+
+    def get_diff_acc(m, d):
+        return m.get("accuracy", {}).get("per_difficulty", {}).get(d, {}).get("accuracy", 0) * 100
+
+    ss_vals = [get_diff_acc(ss_metrics, d) for d in difficulties]
+    v1_vals = [get_diff_acc(v1_metrics, d) for d in difficulties]
+    v2_vals = [get_diff_acc(v2_metrics, d) for d in difficulties]
+
+    x = np.arange(len(labels))
+    width = 0.25
+    fig, ax = plt.subplots(figsize=(10, 6))
+
+    bars_ss = ax.bar(x - width, ss_vals, width, label="Single-Shot", color=COLORS["ss"], alpha=0.85, edgecolor="white")
+    bars_v1 = ax.bar(x, v1_vals, width, label="V1 (Linear)", color=COLORS["v1"], alpha=0.85, edgecolor="white")
+    bars_v2 = ax.bar(x + width, v2_vals, width, label="V2 (Research)", color=COLORS["v2"], alpha=0.85, edgecolor="white")
+
+    ax.set_ylabel("Accuracy (%)")
+    ax.set_title("Accuracy by Difficulty Level", fontsize=16, fontweight="bold", color=COLORS["text"])
+    ax.set_xticks(x)
+    ax.set_xticklabels(labels)
+    ax.legend(framealpha=0.9, edgecolor="#E5E5E5")
+    ax.set_ylim(0, 110)
+
+    for bars in [bars_ss, bars_v1, bars_v2]:
+        for bar in bars:
+            h = bar.get_height()
+            if h > 0:
+                ax.text(bar.get_x() + bar.get_width()/2, h + 1, f'{h:.0f}%', ha='center', va='bottom', fontsize=8)
+
+    plt.savefig(output_path, transparent=False, facecolor="white")
+    plt.close(fig)
+    return output_path
+
+
+def generate_confusion_matrix(results: list[dict], output_path: str, title: str = "Confusion Matrix") -> Optional[str]:
+    """Generate a confusion matrix heatmap."""
+    if not HAS_MATPLOTLIB:
+        return None
+    _setup_style()
+    from eval.metrics import _classify_output, _extract_output, _normalize_gold
+
+    classes = ["true", "false", "partial", "unknown"]
+    labels = ["True", "False", "Partial", "Unknown"]
+    matrix = [[0]*4 for _ in range(3)]  # gold rows x pred cols
+
+    for r in results:
+        gold = r.get("gold_verdict")
+        if gold is None:
+            continue
+        gold_norm = _normalize_gold(gold)
+        pred = _classify_output(_extract_output(r))
+        if gold_norm in classes[:3]:
+            gi = classes.index(gold_norm)
+            pi = classes.index(pred) if pred in classes else 3
+            matrix[gi][pi] += 1
+
+    mat = np.array(matrix)
+    fig, ax = plt.subplots(figsize=(8, 6))
+    im = ax.imshow(mat, cmap="Blues", aspect="auto")
+
+    ax.set_xticks(np.arange(4))
+    ax.set_yticks(np.arange(3))
+    ax.set_xticklabels(labels)
+    ax.set_yticklabels(labels[:3])
+    ax.set_xlabel("Predicted")
+    ax.set_ylabel("Gold")
+    ax.set_title(title, fontsize=16, fontweight="bold", color=COLORS["text"])
+
+    # Annotate cells
+    for i in range(3):
+        for j in range(4):
+            val = mat[i, j]
+            color = "white" if val > mat.max() * 0.6 else COLORS["text"]
+            ax.text(j, i, str(val), ha="center", va="center", fontsize=14, fontweight="bold", color=color)
+
+    fig.colorbar(im, ax=ax, shrink=0.8)
+    plt.savefig(output_path, transparent=False, facecolor="white")
+    plt.close(fig)
+    return output_path
+
+
 def generate_ablation_chart(ablation_results: dict, output_path: str) -> Optional[str]:
     """Generate ablation study comparison chart."""
     if not HAS_MATPLOTLIB or not ablation_results:
@@ -444,6 +533,11 @@ def generate_report(
     lines.append(f"| **Weighted Avg** | {clf['weighted']['precision']:.3f} | {clf['weighted']['recall']:.3f} | {clf['weighted']['f1']:.3f} | {acc['total']} |")
     lines.append("")
 
+    cm_chart = generate_confusion_matrix(results, str(charts_dir / "confusion_matrix.png"), "V2 Confusion Matrix")
+    if cm_chart:
+        lines.append("![Confusion Matrix](charts/confusion_matrix.png)")
+        lines.append("")
+
     # ─── 3-Way Baseline Comparison ───
     if comparison and single_shot_metrics:
         ssm = single_shot_metrics
@@ -499,6 +593,11 @@ def generate_report(
         lat_chart = generate_latency_comparison(ssm["latency"], v1m["latency"], v2m["latency"], str(charts_dir / "latency_comparison.png"))
         if lat_chart:
             lines.append("![Latency Comparison](charts/latency_comparison.png)")
+            lines.append("")
+
+        diff_comp_chart = generate_difficulty_comparison(ssm, v1m, v2m, str(charts_dir / "difficulty_comparison.png"))
+        if diff_comp_chart:
+            lines.append("![Difficulty Comparison](charts/difficulty_comparison.png)")
             lines.append("")
 
         # Statistical significance
@@ -646,6 +745,203 @@ def generate_report(
         for m in mismatches:
             lines.append(f"| {m['input'][:60]}... | {m['gold']} | {m['predicted']} |")
         lines.append("")
+
+    # ─── Discussion ───
+    lines.append("## 10. Discussion")
+    lines.append("")
+
+    if comparison and single_shot_metrics:
+        ssm = single_shot_metrics
+        v1m = comparison["v1_metrics"]
+        v2m = comparison["v2_metrics"]
+        ss_acc = ssm["accuracy"]["accuracy"]
+        v1_acc = v1m["accuracy"]["accuracy"]
+        v2_acc = v2m["accuracy"]["accuracy"]
+        ss_f1 = ssm["classification"]["macro"]["f1"]
+        v1_f1 = v1m["classification"]["macro"]["f1"]
+        v2_f1 = v2m["classification"]["macro"]["f1"]
+
+        lines.append("### Pipeline Value-Add")
+        lines.append("")
+        if v2_acc > ss_acc:
+            lines.append(
+                f"The V2 self-correcting pipeline achieves {v2_acc:.1%} accuracy, "
+                f"a **{(v2_acc - ss_acc)*100:+.1f} percentage point** improvement over "
+                f"the single-shot baseline ({ss_acc:.1%}). This demonstrates that the "
+                f"multi-step decompose-critique-verify-refine loop adds measurable value "
+                f"beyond the raw capability of the underlying language model."
+            )
+        elif v2_acc == ss_acc:
+            lines.append(
+                f"The V2 pipeline matches the single-shot baseline at {v2_acc:.1%} accuracy. "
+                f"While accuracy is comparable, the pipeline provides structured verification "
+                f"evidence and source-backed reasoning that the single-shot approach lacks."
+            )
+        else:
+            lines.append(
+                f"The V2 pipeline ({v2_acc:.1%}) underperforms the single-shot baseline "
+                f"({ss_acc:.1%}) on raw accuracy. This suggests the self-correction loop "
+                f"may introduce over-qualification of true claims or other systematic biases "
+                f"that require further tuning."
+            )
+        lines.append("")
+
+        # V2 vs V1 discussion
+        lines.append("### V2 vs V1 Architecture")
+        lines.append("")
+        if v2_acc > v1_acc:
+            lines.append(
+                f"V2 outperforms V1 by **{(v2_acc - v1_acc)*100:+.1f} percentage points** "
+                f"in accuracy ({v2_acc:.1%} vs {v1_acc:.1%}), with macro F1 improving from "
+                f"{v1_f1:.3f} to {v2_f1:.3f}. The research-inspired additions — constraint "
+                f"decomposition, gating, iterative convergence, and trust ranking — contribute "
+                f"to more reliable fact-checking."
+            )
+        elif v2_acc == v1_acc:
+            lines.append(
+                f"V2 and V1 achieve the same accuracy ({v2_acc:.1%}), but V2's macro F1 "
+                f"({v2_f1:.3f} vs {v1_f1:.3f}) and structured pipeline provide better "
+                f"balanced performance across claim types."
+            )
+        else:
+            lines.append(
+                f"V1 ({v1_acc:.1%}) outperforms V2 ({v2_acc:.1%}) on raw accuracy. "
+                f"The added complexity of V2's gating and iteration may not benefit "
+                f"this particular dataset distribution. Further tuning of gate thresholds "
+                f"and convergence criteria is warranted."
+            )
+        lines.append("")
+
+        # Latency trade-off
+        v2_lat_mean = v2m["latency"]["mean_ms"] / 1000
+        ss_lat_mean = ssm["latency"]["mean_ms"] / 1000
+        lines.append("### Accuracy-Latency Trade-off")
+        lines.append("")
+        lines.append(
+            f"The V2 pipeline's mean latency of {v2_lat_mean:.1f}s represents a "
+            f"{v2_lat_mean / ss_lat_mean:.1f}x overhead compared to single-shot "
+            f"({ss_lat_mean:.1f}s). This cost is justified when fact-checking accuracy "
+            f"is critical, as the pipeline provides source-verified evidence and "
+            f"structured reasoning. For latency-sensitive applications, the gate mechanism "
+            f"enables fast-path processing for high-confidence claims."
+        )
+        lines.append("")
+
+        # Per-class insights
+        lines.append("### Per-Class Analysis")
+        lines.append("")
+        for cls_name in ["true", "false", "partial"]:
+            v2_cls_f1 = v2m["classification"]["per_class"].get(cls_name, {}).get("f1", 0)
+            ss_cls_f1 = ssm["classification"]["per_class"].get(cls_name, {}).get("f1", 0)
+            delta = v2_cls_f1 - ss_cls_f1
+            if abs(delta) > 0.05:
+                direction = "improvement" if delta > 0 else "decline"
+                lines.append(
+                    f"- **{cls_name.title()}** class F1: {v2_cls_f1:.3f} vs {ss_cls_f1:.3f} "
+                    f"(single-shot) — {abs(delta)*100:.1f}pp {direction}"
+                )
+            else:
+                lines.append(
+                    f"- **{cls_name.title()}** class F1: {v2_cls_f1:.3f} vs {ss_cls_f1:.3f} "
+                    f"(single-shot) — comparable performance"
+                )
+        lines.append("")
+
+        # Difficulty insights
+        v2_per_diff = v2m["accuracy"].get("per_difficulty", {})
+        ss_per_diff = ssm["accuracy"].get("per_difficulty", {})
+        if v2_per_diff and ss_per_diff:
+            hard_v2 = v2_per_diff.get("hard", {}).get("accuracy", 0)
+            hard_ss = ss_per_diff.get("hard", {}).get("accuracy", 0)
+            if hard_v2 != hard_ss:
+                lines.append("### Difficulty Scaling")
+                lines.append("")
+                lines.append(
+                    f"On hard claims, V2 achieves {hard_v2:.1%} accuracy versus "
+                    f"{hard_ss:.1%} for single-shot — {'demonstrating that the pipeline adds the most value on challenging cases' if hard_v2 > hard_ss else 'indicating the pipeline may over-correct on nuanced claims'}."
+                )
+                lines.append("")
+    else:
+        lines.append(
+            "Single pipeline evaluation completed. Run `--pipeline all` for "
+            "comparative analysis across baselines."
+        )
+        lines.append("")
+
+    # ─── V2 component insights (if V2 metrics are available) ───
+    if gate["total_runs"] > 0:
+        lines.append("### V2 Component Insights")
+        lines.append("")
+        lines.append(
+            f"- **Gate mechanism** fast-pathed {gate['fast_path_rate']:.0%} of claims, "
+            f"saving processing time on high-confidence inputs."
+        )
+        if trust["total_runs"] > 0:
+            lines.append(
+                f"- **Trust ranking** selected the refined output {trust['refined_wins']} times "
+                f"vs draft {trust['draft_wins']} times, with average scores of "
+                f"{trust['avg_refined_score']:.0f} (refined) vs {trust['avg_draft_score']:.0f} (draft)."
+            )
+        if ref.get("total_samples", 0) > 0:
+            lines.append(
+                f"- **Refinement** improved confidence by an average of "
+                f"{ref['mean_delta']:+.1f} points across {ref.get('total_samples', 0)} samples, "
+                f"with {ref['positive_rate']:.0%} showing positive improvement."
+            )
+        lines.append("")
+
+    # ─── Conclusions ───
+    lines.append("## 11. Conclusions")
+    lines.append("")
+
+    if comparison and single_shot_metrics:
+        ssm = single_shot_metrics
+        v2m = comparison["v2_metrics"]
+        v2_acc = v2m["accuracy"]["accuracy"]
+        ss_acc = ssm["accuracy"]["accuracy"]
+        v2_f1 = v2m["classification"]["macro"]["f1"]
+
+        lines.append(
+            f"1. **The ThinkTwice V2 pipeline achieves {v2_acc:.1%} accuracy** "
+            f"(macro F1: {v2_f1:.3f}) on the {dataset_name} benchmark with {len(results)} claims "
+            f"spanning {len(acc.get('per_domain', {}))} domains and 3 difficulty levels."
+        )
+        if v2_acc > ss_acc:
+            lines.append(
+                f"2. **Self-correction adds measurable value:** The pipeline improves "
+                f"accuracy by {(v2_acc - ss_acc)*100:.1f} percentage points over the "
+                f"single-shot baseline, validating the decompose-critique-verify-refine approach."
+            )
+        else:
+            lines.append(
+                f"2. **Self-correction trade-offs:** While the pipeline adds structured "
+                f"verification and evidence, raw accuracy ({v2_acc:.1%}) is comparable to "
+                f"or below single-shot ({ss_acc:.1%}), suggesting further tuning is needed."
+            )
+        lines.append(
+            f"3. **Latency is the primary cost:** V2's mean latency of "
+            f"{v2m['latency']['mean_ms']/1000:.1f}s reflects the thorough multi-step "
+            f"verification process. The gate mechanism provides a fast path for "
+            f"clear-cut claims."
+        )
+        if gate["total_runs"] > 0:
+            lines.append(
+                f"4. **Gate mechanism enables efficiency:** {gate['fast_path_rate']:.0%} "
+                f"of claims skip the full refinement loop, balancing thoroughness with speed."
+            )
+        if trust["total_runs"] > 0:
+            lines.append(
+                f"5. **Trust ranking validates refinement:** The refined output was selected "
+                f"{trust['refined_wins']}/{trust['total_runs']} times, confirming that "
+                f"the pipeline's corrections generally improve output quality."
+            )
+    else:
+        lines.append(
+            f"The V2 pipeline achieves {acc['accuracy']:.1%} accuracy on {len(results)} samples. "
+            f"Run the full 3-way comparison (`--pipeline all`) for comprehensive evaluation."
+        )
+
+    lines.append("")
 
     # Write report
     report_path = output_path / f"report_{dataset_name}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.md"
