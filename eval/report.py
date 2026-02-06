@@ -466,6 +466,79 @@ def generate_ablation_chart(ablation_results: dict, output_path: str) -> Optiona
     return output_path
 
 
+def _posthoc_gate_analysis(results: list[dict]) -> list[dict]:
+    """Retrospective gate threshold analysis.
+
+    Checks what would have happened if the gate had fast-pathed claims
+    at various confidence thresholds, by comparing draft vs refined accuracy.
+    """
+    from eval.metrics import _classify_output, _normalize_gold
+
+    def is_correct(gold_norm, predicted):
+        if gold_norm == "true" and predicted == "true":
+            return True
+        if gold_norm == "false" and predicted == "false":
+            return True
+        if gold_norm == "partial" and predicted in ("partial", "true"):
+            return True
+        return False
+
+    # Collect per-claim data
+    claims = []
+    for r in results:
+        gold = r.get("gold_verdict")
+        if gold is None:
+            continue
+        m = r.get("metrics", {})
+        gate_conf = m.get("gate_confidence", m.get("confidence_before", 0))
+        duration = r.get("duration_ms", 0)
+
+        # Extract draft output from events
+        draft_output = ""
+        for e in r.get("events", []):
+            if e.get("event") == "step_complete" and e.get("data", {}).get("step") == "draft":
+                draft_output = e["data"].get("content", "")
+                break
+
+        gold_norm = _normalize_gold(gold)
+        draft_pred = _classify_output(draft_output) if draft_output else "unknown"
+        draft_ok = is_correct(gold_norm, draft_pred)
+
+        claims.append({
+            "gate_conf": gate_conf,
+            "draft_correct": draft_ok,
+            "duration_ms": duration,
+        })
+
+    if not claims:
+        return []
+
+    total = len(claims)
+    mean_duration = sum(c["duration_ms"] for c in claims) / total
+    # Estimate draft-only duration as ~15% of full pipeline (1 API call vs ~15)
+    draft_duration_pct = 0.15
+
+    analysis = []
+    for threshold in [40, 50, 60, 70]:
+        would_skip = [c for c in claims if c["gate_conf"] >= threshold]
+        n_skip = len(would_skip)
+        n_correct = sum(1 for c in would_skip if c["draft_correct"])
+        draft_acc = n_correct / n_skip if n_skip > 0 else 0
+
+        # Latency saving: fast-pathed claims use ~15% of full pipeline time
+        saving_pct = (n_skip / total) * (1 - draft_duration_pct) * 100 if total > 0 else 0
+
+        analysis.append({
+            "threshold": threshold,
+            "would_skip": n_skip,
+            "total": total,
+            "draft_accuracy": draft_acc,
+            "latency_saving_pct": saving_pct,
+        })
+
+    return analysis
+
+
 def generate_report(
     results: list[dict],
     dataset_name: str,
@@ -760,6 +833,46 @@ def generate_report(
     lines.append(f"- Fast-path (skipped refinement): {gate['fast_path_count']} ({gate['fast_path_rate']:.1%})")
     lines.append(f"- Average iterations when refining: {gate['avg_iterations']:.1f}")
     lines.append("")
+
+    # Post-hoc gate threshold analysis
+    if gate["fast_path_rate"] == 0 and gate["total_runs"] > 0:
+        gate_analysis = _posthoc_gate_analysis(results)
+        if gate_analysis:
+            lines.append("### Retrospective Gate Threshold Analysis")
+            lines.append("")
+            lines.append(
+                "The production gate thresholds (confidence >= 85, 100% constraint pass rate) "
+                "were too strict for any claim to qualify for fast-path. To evaluate the gate "
+                "architecture, we retrospectively analyze what would have happened at lower "
+                "thresholds by checking whether draft outputs were already correct before refinement."
+            )
+            lines.append("")
+            lines.append("| Confidence Threshold | Claims Fast-Pathed | Draft Accuracy | Projected Latency Saving |")
+            lines.append("|---------------------|-------------------|----------------|-------------------------|")
+            for entry in gate_analysis:
+                t = entry["threshold"]
+                n_skip = entry["would_skip"]
+                total = entry["total"]
+                pct = n_skip / total * 100 if total > 0 else 0
+                draft_acc = entry["draft_accuracy"] * 100
+                saving = entry["latency_saving_pct"]
+                lines.append(f"| >= {t} | {n_skip}/{total} ({pct:.0f}%) | {draft_acc:.0f}% | ~{saving:.0f}% |")
+            lines.append("")
+
+            # Find optimal threshold
+            optimal = None
+            for entry in gate_analysis:
+                if entry["draft_accuracy"] >= 1.0 and entry["would_skip"] > 0:
+                    optimal = entry
+                    break
+            if optimal:
+                lines.append(
+                    f"**Recommended threshold: confidence >= {optimal['threshold']}** — "
+                    f"fast-paths {optimal['would_skip']}/{optimal['total']} claims "
+                    f"({optimal['would_skip']/optimal['total']*100:.0f}%) with 100% draft accuracy, "
+                    f"reducing mean latency by ~{optimal['latency_saving_pct']:.0f}%."
+                )
+                lines.append("")
 
     lines.append("### Constraint Satisfaction")
     lines.append(f"- Total constraints evaluated: {cs['total']}")
