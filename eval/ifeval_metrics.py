@@ -43,38 +43,34 @@ def _register(instruction_id: str):
 def _generate_loose_variants(response: str) -> list[str]:
     """Generate loose-evaluation variants of a response.
 
-    The IFEval paper applies transformations to be lenient about formatting:
-    1. Strip markdown formatting (bold, headers, etc.)
-    2. Strip leading/trailing whitespace per line
-    3. Remove first/last line if they look like preamble/postscript
+    Matches the original IFEval paper (Google Research implementation):
+    1. Remove asterisk characters (handles bold/italic markdown)
+    2. Remove the first line (handles preamble like "Sure, here's...")
+    3. Remove the last line (handles closing remarks)
 
-    Returns up to 8 variants (power set of 3 transforms).
+    These 3 independent transforms produce 2^3 = 8 variants via power set.
     """
     variants = [response]
 
-    # Transform 1: Strip markdown
-    def strip_markdown(text: str) -> str:
-        text = re.sub(r'#{1,6}\s*', '', text)  # headers
-        text = re.sub(r'\*\*([^*]+)\*\*', r'\1', text)  # bold
-        text = re.sub(r'\*([^*]+)\*', r'\1', text)  # italic
-        text = re.sub(r'`([^`]+)`', r'\1', text)  # inline code
-        text = re.sub(r'```[\s\S]*?```', '', text)  # code blocks
-        text = re.sub(r'^[-*+]\s', '', text, flags=re.MULTILINE)  # bullets
-        text = re.sub(r'^\d+\.\s', '', text, flags=re.MULTILINE)  # numbered lists
-        return text
+    # Transform 1: Remove * characters (original paper only strips asterisks)
+    def remove_asterisks(text: str) -> str:
+        return text.replace('*', '')
 
-    # Transform 2: Strip whitespace per line
-    def strip_whitespace(text: str) -> str:
-        return '\n'.join(line.strip() for line in text.split('\n'))
-
-    # Transform 3: Remove first/last line
-    def remove_bookends(text: str) -> str:
+    # Transform 2: Remove first line
+    def remove_first_line(text: str) -> str:
         lines = text.strip().split('\n')
-        if len(lines) <= 2:
+        if len(lines) <= 1:
             return text
-        return '\n'.join(lines[1:-1])
+        return '\n'.join(lines[1:])
 
-    transforms = [strip_markdown, strip_whitespace, remove_bookends]
+    # Transform 3: Remove last line
+    def remove_last_line(text: str) -> str:
+        lines = text.strip().split('\n')
+        if len(lines) <= 1:
+            return text
+        return '\n'.join(lines[:-1])
+
+    transforms = [remove_asterisks, remove_first_line, remove_last_line]
 
     # Generate power set of transforms (2^3 = 8 combinations)
     for mask in range(1, 8):
@@ -117,10 +113,14 @@ def _verify_keywords_frequency(response: str, kwargs: dict) -> bool:
 
 @_register("keywords:forbidden_words")
 def _verify_forbidden_words(response: str, kwargs: dict) -> bool:
-    """Check that forbidden words do not appear."""
+    """Check that forbidden words do not appear (word-boundary matching)."""
     forbidden = kwargs.get("forbidden_words", [])
     response_lower = response.lower()
-    return not any(word.lower() in response_lower for word in forbidden)
+    for word in forbidden:
+        # Use word-boundary regex to avoid substring false positives
+        if re.search(r'\b' + re.escape(word.lower()) + r'\b', response_lower):
+            return False
+    return True
 
 
 @_register("keywords:letter_frequency")
@@ -169,13 +169,14 @@ def _verify_number_sentences(response: str, kwargs: dict) -> bool:
 
 @_register("length_constraints:number_paragraphs")
 def _verify_number_paragraphs(response: str, kwargs: dict) -> bool:
-    """Check paragraph count constraint."""
+    """Check paragraph count constraint.
+
+    The IFEval dataset instructs models to separate paragraphs with blank lines.
+    We count paragraphs by splitting on blank lines (double newlines).
+    """
     num_paragraphs = kwargs.get("num_paragraphs", 0)
-    # Paragraphs are separated by blank lines
     paragraphs = [p.strip() for p in re.split(r'\n\s*\n', response.strip()) if p.strip()]
-    count = len(paragraphs)
-    # Allow +-1 tolerance for paragraph splitting ambiguity
-    return abs(count - num_paragraphs) <= 1
+    return len(paragraphs) == num_paragraphs
 
 
 @_register("length_constraints:nth_paragraph_first_word")
@@ -189,8 +190,7 @@ def _verify_nth_paragraph_first_word(response: str, kwargs: dict) -> bool:
     para_words = paragraphs[nth - 1].split()
     if not para_words:
         return False
-    # Strip markdown from the first word
-    actual = re.sub(r'[*#_`]', '', para_words[0]).lower()
+    actual = para_words[0].strip().lower()
     return actual == first_word
 
 
@@ -231,20 +231,9 @@ def _verify_json_format(response: str, kwargs: dict) -> bool:
 
 @_register("detectable_format:title")
 def _verify_title_format(response: str, kwargs: dict) -> bool:
-    """Check that the response has a title (wrapped in markdown or first line is title-like)."""
-    lines = response.strip().split('\n')
-    if not lines:
-        return False
-    first = lines[0].strip()
-    # Check for markdown header or title-like formatting
-    if re.match(r'^#{1,3}\s+\S', first):
-        return True
-    if re.match(r'^\*\*.*\*\*$', first):
-        return True
-    # Title case with reasonable length
-    if len(first) < 100 and first[0].isupper():
-        return True
-    return False
+    """Check that the response has a title wrapped in <<>> (IFEval paper format)."""
+    # IFEval instructs models to wrap titles in <<title>> double angle brackets
+    return bool(re.search(r'<<[^>]+>>', response))
 
 
 @_register("detectable_format:number_bullet_lists")
@@ -260,36 +249,44 @@ def _verify_bullet_lists(response: str, kwargs: dict) -> bool:
 
 @_register("detectable_format:number_highlighted_sections")
 def _verify_highlighted_sections(response: str, kwargs: dict) -> bool:
-    """Check for highlighted sections (bold headers, markdown headers)."""
+    """Check for highlighted sections (*text* or **text** inline patterns)."""
     num_sections = kwargs.get("num_highlights", kwargs.get("num_sections", 1))
-    headers = re.findall(r'^#{1,6}\s+\S', response, re.MULTILINE)
-    bold_headers = re.findall(r'^\*\*[^*]+\*\*', response, re.MULTILINE)
-    total = len(headers) + len(bold_headers)
-    return total >= num_sections
+    # Count *text* and **text** patterns (asterisk-wrapped text, not headers)
+    highlights = re.findall(r'\*{1,2}[^*\n]+\*{1,2}', response)
+    return len(highlights) >= num_sections
 
 
 @_register("detectable_format:multiple_sections")
 def _verify_multiple_sections(response: str, kwargs: dict) -> bool:
-    """Check that response has multiple distinct sections."""
-    num_sections = kwargs.get("section_spliter", kwargs.get("num_sections", 2))
-    # Count sections by headers or significant breaks
-    headers = re.findall(r'^#{1,6}\s+\S', response, re.MULTILINE)
-    bold_headers = re.findall(r'^\*\*[^*]+\*\*', response, re.MULTILINE)
-    total = len(headers) + len(bold_headers)
-    if isinstance(num_sections, str):
-        # section_spliter can be a string like "Section"
-        total = len(re.findall(re.escape(num_sections), response))
-    return total >= 2
+    """Check that response has multiple distinct sections.
+
+    Uses the section_spliter keyword from kwargs (e.g., "SECTION")
+    combined with digit regex, matching the original IFEval implementation.
+    """
+    section_spliter = kwargs.get("section_spliter", "")
+    num_sections = kwargs.get("num_sections", 2)
+    if section_spliter:
+        # Count occurrences of "SECTION 1", "SECTION 2", etc.
+        pattern = re.escape(section_spliter) + r'\s*\d+'
+        matches = re.findall(pattern, response, re.IGNORECASE)
+        return len(matches) >= num_sections
+    # Fallback: count by blank-line-separated sections
+    sections = [s.strip() for s in re.split(r'\n\s*\n', response.strip()) if s.strip()]
+    return len(sections) >= num_sections
 
 
 @_register("detectable_format:constrained_response")
 def _verify_constrained_response(response: str, kwargs: dict) -> bool:
-    """Check response is one of allowed choices."""
-    # This is typically "respond with only X or Y"
-    # We check if the response (stripped) is very short
+    """Check response is one of the allowed constrained choices.
+
+    The IFEval dataset uses "My answer is yes/no/maybe" as constrained formats.
+    """
     stripped = response.strip().lower()
-    # If response is under 50 words, it's likely constrained
-    return len(stripped.split()) <= 50
+    constrained_phrases = [
+        "my answer is yes", "my answer is no", "my answer is maybe",
+        "my answer is yes.", "my answer is no.", "my answer is maybe.",
+    ]
+    return any(stripped.startswith(phrase) for phrase in constrained_phrases)
 
 
 # --- Case ---
@@ -408,10 +405,12 @@ def _verify_quotation(response: str, kwargs: dict) -> bool:
 
 @_register("combination:two_responses")
 def _verify_two_responses(response: str, kwargs: dict) -> bool:
-    """Check that the response contains two distinct responses (separated by a marker)."""
-    separators = ["***", "---", "===", "response 1", "response 2", "answer 1", "answer 2"]
-    response_lower = response.lower()
-    return any(sep in response_lower for sep in separators)
+    """Check that the response contains two distinct responses.
+
+    The IFEval dataset instructs models to separate two responses with
+    exactly 6 asterisks (******), matching the original implementation.
+    """
+    return '******' in response
 
 
 @_register("combination:repeat_prompt")
