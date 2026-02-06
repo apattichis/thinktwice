@@ -15,7 +15,6 @@ logger = logging.getLogger(__name__)
 # Maps dataset names to their evaluation type
 DATASET_TYPES = {
     "ifeval": "ifeval",
-    "truthfulqa": "truthfulqa",
 }
 
 
@@ -34,9 +33,6 @@ def get_metrics_for_dataset(name: str, results: list[dict]) -> dict:
     if dtype == "ifeval":
         from eval.ifeval_metrics import compute_ifeval_metrics
         return compute_ifeval_metrics(results)
-    elif dtype == "truthfulqa":
-        from eval.truthfulqa_metrics import compute_truthfulqa_metrics
-        return compute_truthfulqa_metrics(results)
 
 
 def get_report_for_dataset(
@@ -52,12 +48,6 @@ def get_report_for_dataset(
     if dtype == "ifeval":
         from eval.ifeval_report import generate_ifeval_report
         return generate_ifeval_report(
-            results, name, output_dir=output_dir,
-            comparison=comparison, ss_metrics=single_shot_metrics,
-        )
-    elif dtype == "truthfulqa":
-        from eval.truthfulqa_report import generate_truthfulqa_report
-        return generate_truthfulqa_report(
             results, name, output_dir=output_dir,
             comparison=comparison, ss_metrics=single_shot_metrics,
         )
@@ -78,12 +68,3 @@ def get_correct_fn(name: str):
                 return False
             return judgements.get("prompt_strict", False)
         return _is_correct_ifeval
-
-    elif dtype == "truthfulqa":
-        def _is_correct_truthfulqa(result: dict) -> bool:
-            """Judge must rate as both truthful and informative."""
-            judge = result.get("truthfulqa_judge", {})
-            if not judge:
-                return False
-            return judge.get("truthful", False) and judge.get("informative", False)
-        return _is_correct_truthfulqa

@@ -3,7 +3,6 @@
 Usage:
     python eval/run_eval.py --dataset ifeval --pipeline thinktwice --output results/
     python eval/run_eval.py --dataset ifeval --pipeline all --output results/ --samples 120
-    python eval/run_eval.py --dataset truthfulqa --pipeline all --output results/ --samples 100
     python eval/run_eval.py --report --input results/ --output results/
 """
 
@@ -35,14 +34,11 @@ def setup_logging(verbose: bool = False):
 
 def get_dataset(name: str, max_samples: int | None = None) -> list[dict]:
     """Load a dataset by name."""
-    if name == "truthfulqa":
-        from eval.datasets.truthfulqa import get_dataset
-        return get_dataset(max_samples=max_samples)
-    elif name == "ifeval":
+    if name == "ifeval":
         from eval.datasets.ifeval import get_dataset
         return get_dataset(max_samples=max_samples)
     else:
-        raise ValueError(f"Unknown dataset: {name}. Choose from: truthfulqa, ifeval")
+        raise ValueError(f"Unknown dataset: {name}. Choose from: ifeval")
 
 
 async def run_pipeline(dataset: list[dict], dataset_name: str, version: str, output_dir: str, max_samples: int | None = None, resume_from: str | None = None):
@@ -54,13 +50,10 @@ async def run_pipeline(dataset: list[dict], dataset_name: str, version: str, out
 
 
 async def _post_process(results: list[dict], dataset_name: str) -> list[dict]:
-    """Run dataset-specific post-processing (e.g., LLM judge for TruthfulQA)."""
+    """Run dataset-specific post-processing."""
     dtype = get_dataset_type(dataset_name)
 
-    if dtype == "truthfulqa":
-        from eval.truthfulqa_metrics import judge_batch
-        results = await judge_batch(results)
-    elif dtype == "ifeval":
+    if dtype == "ifeval":
         from eval.ifeval_metrics import judge_all
         results = judge_all(results)
 
@@ -117,36 +110,23 @@ async def run_all(dataset: list[dict], dataset_name: str, output_dir: str, max_s
 
 
 def _print_summary(dataset_name: str, ss_metrics: dict, comparison: dict, report_path: str):
-    """Print results summary adapted to the dataset type."""
-    dtype = get_dataset_type(dataset_name)
+    """Print results summary."""
     ttm = comparison['thinktwice_metrics']
 
     print(f"\n{'='*60}")
     print(f"  RESULTS SUMMARY")
     print(f"{'='*60}")
 
-    if dtype == "ifeval":
-        ssm = ss_metrics
-        print(f"\n  {'Metric':<30} {'Single-Shot':>12} {'ThinkTwice':>12}")
-        print(f"  {'-'*54}")
-        print(f"  {'Prompt Strict Acc':<30} {ssm.get('prompt_strict_accuracy', 0):>11.1%} {ttm.get('prompt_strict_accuracy', 0):>11.1%}")
-        print(f"  {'Instr Strict Acc':<30} {ssm.get('instruction_strict_accuracy', 0):>11.1%} {ttm.get('instruction_strict_accuracy', 0):>11.1%}")
-        print(f"  {'Prompt Loose Acc':<30} {ssm.get('prompt_loose_accuracy', 0):>11.1%} {ttm.get('prompt_loose_accuracy', 0):>11.1%}")
-        print(f"  {'Instr Loose Acc':<30} {ssm.get('instruction_loose_accuracy', 0):>11.1%} {ttm.get('instruction_loose_accuracy', 0):>11.1%}")
-        ss_lat = ssm.get('latency', {})
-        tt_lat = ttm.get('latency', {})
-        print(f"  {'Mean Latency':<30} {ss_lat.get('mean_ms', 0)/1000:>10.1f}s {tt_lat.get('mean_ms', 0)/1000:>10.1f}s")
-
-    elif dtype == "truthfulqa":
-        ssm = ss_metrics
-        print(f"\n  {'Metric':<30} {'Single-Shot':>12} {'ThinkTwice':>12}")
-        print(f"  {'-'*54}")
-        print(f"  {'Truthful + Informative':<30} {ssm.get('truthful_informative_rate', 0):>11.1%} {ttm.get('truthful_informative_rate', 0):>11.1%}")
-        print(f"  {'Truthful Rate':<30} {ssm.get('truthful_rate', 0):>11.1%} {ttm.get('truthful_rate', 0):>11.1%}")
-        print(f"  {'Informative Rate':<30} {ssm.get('informative_rate', 0):>11.1%} {ttm.get('informative_rate', 0):>11.1%}")
-        ss_lat = ssm.get('latency', {})
-        tt_lat = ttm.get('latency', {})
-        print(f"  {'Mean Latency':<30} {ss_lat.get('mean_ms', 0)/1000:>10.1f}s {tt_lat.get('mean_ms', 0)/1000:>10.1f}s")
+    ssm = ss_metrics
+    print(f"\n  {'Metric':<30} {'Single-Shot':>12} {'ThinkTwice':>12}")
+    print(f"  {'-'*54}")
+    print(f"  {'Prompt Strict Acc':<30} {ssm.get('prompt_strict_accuracy', 0):>11.1%} {ttm.get('prompt_strict_accuracy', 0):>11.1%}")
+    print(f"  {'Instr Strict Acc':<30} {ssm.get('instruction_strict_accuracy', 0):>11.1%} {ttm.get('instruction_strict_accuracy', 0):>11.1%}")
+    print(f"  {'Prompt Loose Acc':<30} {ssm.get('prompt_loose_accuracy', 0):>11.1%} {ttm.get('prompt_loose_accuracy', 0):>11.1%}")
+    print(f"  {'Instr Loose Acc':<30} {ssm.get('instruction_loose_accuracy', 0):>11.1%} {ttm.get('instruction_loose_accuracy', 0):>11.1%}")
+    ss_lat = ssm.get('latency', {})
+    tt_lat = ttm.get('latency', {})
+    print(f"  {'Mean Latency':<30} {ss_lat.get('mean_ms', 0)/1000:>10.1f}s {tt_lat.get('mean_ms', 0)/1000:>10.1f}s")
 
     sig = comparison.get('statistical_significance', {})
     if sig:
@@ -189,13 +169,12 @@ def main():
         epilog="""
 Examples:
   python eval/run_eval.py --dataset ifeval --pipeline all --samples 120
-  python eval/run_eval.py --dataset truthfulqa --pipeline all --samples 100
   python eval/run_eval.py --dataset ifeval --pipeline thinktwice --samples 5
   python eval/run_eval.py --report --input results/
         """,
     )
 
-    parser.add_argument("--dataset", choices=["truthfulqa", "ifeval"],
+    parser.add_argument("--dataset", choices=["ifeval"],
                         help="Dataset to evaluate on")
     parser.add_argument("--pipeline", choices=["thinktwice", "single_shot", "all"], default="thinktwice",
                         help="Pipeline version: thinktwice, single_shot, or all (runs both)")
@@ -228,19 +207,11 @@ Examples:
             _resave_results(results, args.output, args.dataset)
             metrics = get_metrics_for_dataset(args.dataset, results)
 
-            dtype = get_dataset_type(args.dataset)
             print(f"\nResults ({len(results)} samples):")
-
-            if dtype == "ifeval":
-                print(f"  Prompt Strict Accuracy: {metrics.get('prompt_strict_accuracy', 0):.1%}")
-                print(f"  Instruction Strict Accuracy: {metrics.get('instruction_strict_accuracy', 0):.1%}")
-                print(f"  Prompt Loose Accuracy: {metrics.get('prompt_loose_accuracy', 0):.1%}")
-                print(f"  Mean Latency: {metrics.get('latency', {}).get('mean_ms', 0)/1000:.1f}s")
-            elif dtype == "truthfulqa":
-                print(f"  Truthful + Informative: {metrics.get('truthful_informative_rate', 0):.1%}")
-                print(f"  Truthful Rate: {metrics.get('truthful_rate', 0):.1%}")
-                print(f"  Informative Rate: {metrics.get('informative_rate', 0):.1%}")
-                print(f"  Mean Latency: {metrics.get('latency', {}).get('mean_ms', 0)/1000:.1f}s")
+            print(f"  Prompt Strict Accuracy: {metrics.get('prompt_strict_accuracy', 0):.1%}")
+            print(f"  Instruction Strict Accuracy: {metrics.get('instruction_strict_accuracy', 0):.1%}")
+            print(f"  Prompt Loose Accuracy: {metrics.get('prompt_loose_accuracy', 0):.1%}")
+            print(f"  Mean Latency: {metrics.get('latency', {}).get('mean_ms', 0)/1000:.1f}s")
 
             report_path = get_report_for_dataset(args.dataset, results, output_dir=args.output)
             print(f"\nReport: {report_path}")
