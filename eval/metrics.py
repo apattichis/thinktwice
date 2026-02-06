@@ -290,6 +290,12 @@ def _classify_output(output: str) -> str:
         "contradicts scientific",
         "not well-supported",
         "poorly supported",
+        "mathematically false",
+        "mathematically incorrect",
+        "scientifically false",
+        "claim is disputed",
+        "remains disputed",
+        "is disputed",
     ]
     if any(s in closer for s in false_closer_signals):
         return "false"
