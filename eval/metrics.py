@@ -51,16 +51,24 @@ def _extract_verdict_section(text: str) -> str:
 
 
 def _classify_output(output: str) -> str:
-    """Classify pipeline output as true/false/partial based on language cues.
+    """Classify pipeline output as true/false/partial.
 
-    Uses multiple regions of the text for signal detection:
-    - Opener (first 300 chars): strongest signal for conversational responses
-    - Verdict section: extracted from structured headers like **Overall:**
-    - Closer (last 500 chars): verdict signal for structured/analytical responses
-    - Full text: weaker but broad signal
+    Priority order:
+    1. Explicit verdict line (e.g., **Verdict: True**) — highest confidence
+    2. Signal-based detection across opener, closer, verdict section, full text
 
     Returns 'true', 'false', 'partial', or 'unknown'.
     """
+    import re
+    # --- Priority 1: Explicit verdict line (standardized V2 outputs) ---
+    verdict_match = re.search(
+        r'\*\*verdict:\s*(true|false|partial)\*\*',
+        output.lower()
+    )
+    if verdict_match:
+        return verdict_match.group(1)
+
+    # --- Priority 2: Signal-based detection (legacy/SS/V1 outputs) ---
     raw_text = output.lower()
     # Strip markdown bold/italic for signal matching (but keep raw for header extraction)
     text = raw_text.replace("**", "").replace("__", "")

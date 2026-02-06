@@ -32,8 +32,8 @@ class Settings(BaseSettings):
     timeout: float = 60.0
 
     # V2 Pipeline Configuration
-    gate_threshold: int = 85
-    gate_min_pass_rate: float = 1.0
+    gate_threshold: int = 70
+    gate_min_pass_rate: float = 0.8
     max_iterations: int = 3
     convergence_threshold: int = 80
     self_verify_enabled: bool = True

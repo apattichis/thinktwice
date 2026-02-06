@@ -64,6 +64,11 @@ Question: {input_text}""",
     "claim": """Analyze this factual claim. Restate what it asserts, provide context, and give your initial assessment.
 Be specific about which parts seem accurate and which seem questionable.
 
+Your response MUST end with exactly one of:
+- **Verdict: True** — the core claim is factually accurate (minor caveats are acceptable)
+- **Verdict: False** — the core assertion is contradicted by evidence; the central factual claim is wrong
+- **Verdict: Partial** — the claim contains elements of truth but is oversimplified, embellished, misleading, or requires significant qualification
+
 Claim: {input_text}""",
 
     "url": """Analyze this article. Summarize key points and identify the main factual claims.
@@ -229,6 +234,17 @@ FIX (must address):
 
 ACKNOWLEDGE (cannot fully fix, note the limitation):
 {acknowledge}
+
+VERDICT LINE (REQUIRED):
+Your refined_response MUST end with exactly one of the following lines:
+- **Verdict: True** — the core claim is factually accurate (minor caveats are acceptable)
+- **Verdict: False** — the core assertion is contradicted by evidence; the central factual claim is wrong
+- **Verdict: Partial** — the claim contains elements of truth but is oversimplified, embellished, misleading, or requires significant qualification. Use this when SOME sub-claims are verified but the overall framing is inaccurate or exaggerated.
+
+VERDICT DECISION RULE: Base your verdict on the verification results above.
+- If most claims are verified and none refuted → lean True
+- If the core assertion is directly contradicted by evidence → lean False
+- If truth is mixed with oversimplification, embellishment, or missing context → Partial
 
 You MUST use the submit_refinement tool to provide your refined response."""
 

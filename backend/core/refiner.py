@@ -182,7 +182,10 @@ def _format_verifications_v2(verifications: list[VerificationResultV2]) -> str:
     """Format v2 verification results for the prompt."""
     if not verifications:
         return "No claims were verified."
-    lines = []
+    verified = sum(1 for v in verifications if v.combined_verdict.value == "verified")
+    refuted = sum(1 for v in verifications if v.combined_verdict.value == "refuted")
+    unclear = sum(1 for v in verifications if v.combined_verdict.value == "unclear")
+    lines = [f"SUMMARY: {verified} verified, {refuted} refuted, {unclear} unclear out of {len(verifications)} claims\n"]
     for v in verifications:
         emoji = {"verified": "✅", "refuted": "❌", "unclear": "⚠️"}.get(
             v.combined_verdict.value, "?"
