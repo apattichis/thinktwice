@@ -45,8 +45,8 @@ def _extract_verdict_section(text: str) -> str:
     for pattern in patterns:
         matches = list(re.finditer(pattern, text, re.IGNORECASE | re.DOTALL))
         if matches:
-            # Take the last match (final verdict section)
-            return matches[-1].group(1).strip()[:600]
+            # Take the last match (final verdict section), strip markdown bold
+            return matches[-1].group(1).strip().replace("**", "").replace("__", "")[:600]
     return ""
 
 
@@ -61,14 +61,16 @@ def _classify_output(output: str) -> str:
 
     Returns 'true', 'false', 'partial', or 'unknown'.
     """
-    text = output.lower()
+    raw_text = output.lower()
+    # Strip markdown bold/italic for signal matching (but keep raw for header extraction)
+    text = raw_text.replace("**", "").replace("__", "")
     # Opening sentences carry the verdict signal (conversational style)
     opener = text[:300]
     # Closing sentences carry the verdict in analytical/structured outputs
     # Use last 800 chars (V1 conclusions can be long)
     closer = text[-800:] if len(text) > 800 else text
-    # Extract verdict section from structured outputs (V1 style)
-    verdict_section = _extract_verdict_section(text)
+    # Extract verdict section from raw text (needs ** markers for header detection)
+    verdict_section = _extract_verdict_section(raw_text)
 
     # --- Partial signals (check first — most specific) ---
     partial_signals = [
@@ -264,7 +266,7 @@ def _classify_output(output: str) -> str:
         "common misconception",
         "substantial overestimation",
         "overestimation",
-        "**inaccurate**",
+        "inaccurate",
         "this claim is not",
         "this is not correct",
         "does not accurately",
