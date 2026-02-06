@@ -437,9 +437,9 @@ def generate_report(
     lines.append("")
     lines.append("| Class | Precision | Recall | F1 | Support |")
     lines.append("|-------|-----------|--------|-----|---------|")
-    for cls in ["true", "false", "partial"]:
-        pc = clf["per_class"].get(cls, {})
-        lines.append(f"| **{cls.title()}** | {pc.get('precision', 0):.3f} | {pc.get('recall', 0):.3f} | {pc.get('f1', 0):.3f} | {pc.get('support', 0)} |")
+    for cls_name in ["true", "false", "partial"]:
+        pc = clf["per_class"].get(cls_name, {})
+        lines.append(f"| **{cls_name.title()}** | {pc.get('precision', 0):.3f} | {pc.get('recall', 0):.3f} | {pc.get('f1', 0):.3f} | {pc.get('support', 0)} |")
     lines.append(f"| **Macro Avg** | {clf['macro']['precision']:.3f} | {clf['macro']['recall']:.3f} | {clf['macro']['f1']:.3f} | {acc['total']} |")
     lines.append(f"| **Weighted Avg** | {clf['weighted']['precision']:.3f} | {clf['weighted']['recall']:.3f} | {clf['weighted']['f1']:.3f} | {acc['total']} |")
     lines.append("")
@@ -466,11 +466,11 @@ def generate_report(
         lines.append("")
         lines.append("| Class | Single-Shot | V1 | V2 |")
         lines.append("|-------|-------------|-----|-----|")
-        for cls in ["true", "false", "partial"]:
-            ss_f1 = ssm['classification']['per_class'].get(cls, {}).get('f1', 0)
-            v1_f1 = v1m['classification']['per_class'].get(cls, {}).get('f1', 0)
-            v2_f1 = v2m['classification']['per_class'].get(cls, {}).get('f1', 0)
-            lines.append(f"| **{cls.title()}** | {ss_f1:.3f} | {v1_f1:.3f} | {v2_f1:.3f} |")
+        for cls_name in ["true", "false", "partial"]:
+            ss_f1 = ssm['classification']['per_class'].get(cls_name, {}).get('f1', 0)
+            v1_f1 = v1m['classification']['per_class'].get(cls_name, {}).get('f1', 0)
+            v2_f1 = v2m['classification']['per_class'].get(cls_name, {}).get('f1', 0)
+            lines.append(f"| **{cls_name.title()}** | {ss_f1:.3f} | {v1_f1:.3f} | {v2_f1:.3f} |")
         lines.append("")
 
         # Improvement summary
