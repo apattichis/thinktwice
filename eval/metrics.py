@@ -11,20 +11,35 @@ from typing import Optional
 logger = logging.getLogger(__name__)
 
 
+def _extract_output(result: dict) -> str:
+    """Extract output text from a result, falling back to events if output field is empty."""
+    output = result.get("output", "")
+    if output:
+        return output
+    # Fallback: extract from refine step_complete event
+    for event in reversed(result.get("events", [])):
+        if event.get("event") == "step_complete" and event.get("data", {}).get("step") == "refine":
+            return event["data"].get("content", "")
+    return ""
+
+
 def _classify_output(output: str) -> str:
     """Classify pipeline output as true/false/partial based on language cues.
 
-    Uses the opening 2-3 sentences as the strongest signal since Claude typically
-    leads with its verdict. Checks for negation context to avoid false positives
-    like "not quite accurate" being classified as "true" due to the word "accurate".
+    Uses multiple regions of the text for signal detection:
+    - Opener (first 300 chars): strongest signal for conversational responses
+    - Closer (last 500 chars): verdict signal for structured/analytical responses
+    - Full text: weaker but broad signal
 
     Returns 'true', 'false', 'partial', or 'unknown'.
     """
     text = output.lower()
-    # Opening sentences carry the verdict signal
+    # Opening sentences carry the verdict signal (conversational style)
     opener = text[:300]
+    # Closing sentences carry the verdict in analytical/structured outputs
+    closer = text[-500:] if len(text) > 500 else text
 
-    # Check for partial/nuanced verdicts first (most specific)
+    # --- Partial signals (check first — most specific) ---
     partial_signals = [
         "partially true", "partially correct", "partly true", "partly correct",
         "partially accurate", "not entirely", "oversimplification",
@@ -63,7 +78,44 @@ def _classify_output(output: str) -> str:
     if any(s in opener for s in partial_signals):
         return "partial"
 
-    # Check for false/myth/misconception signals (check BEFORE true to catch negations)
+    # Partial signals in closer (V1/V2 analytical style)
+    partial_closer_signals = [
+        "would be more accurate if",
+        "mostly accurate but",
+        "largely accurate but oversimplified",
+        "mostly accurate with",
+        "accurate but oversimplified",
+        "accurate but incomplete",
+        "correct but oversimplified",
+        "correct but incomplete",
+        "true for practical purposes",
+        "true in spirit but",
+        "may need qualification",
+        "needs qualification",
+        "requires qualification",
+        "with important caveats",
+        "with some caveats",
+        "with notable exceptions",
+        "with important qualifications",
+        "with significant caveats",
+        "not the whole story",
+        "more complex picture",
+        "more complicated than",
+        "somewhat misleading",
+        "an oversimplification",
+        "while generally accurate",
+        "while broadly correct",
+        "while technically accurate",
+        "oversimplifies the",
+        "overlooks the underlying",
+        "more precise statement",
+        "correct in its basic premise but",
+        "accurate in broad terms but",
+    ]
+    if any(s in closer for s in partial_closer_signals):
+        return "partial"
+
+    # --- False signals (check BEFORE true to catch negations) ---
     false_signals = [
         "myth", "misconception", "not true", "is false", "is incorrect",
         "refuted", "debunked", "inaccurate", "misleading", "wrong",
@@ -98,7 +150,45 @@ def _classify_output(output: str) -> str:
     if any(s in opener for s in false_signals):
         return "false"
 
-    # Check for true/correct signals — check opener first, then broader text
+    # False signals in closer (V1/V2 analytical style)
+    false_closer_signals = [
+        "scientifically inaccurate",
+        "claim is inaccurate",
+        "claim is false",
+        "claim is not accurate",
+        "claim is incorrect",
+        "clearly refutes",
+        "has no scientific basis",
+        "no basis in",
+        "has been consistently debunked",
+        "consistently debunked",
+        "have consistently debunked",
+        "contradicted by",
+        "misrepresents how",
+        "misrepresents the",
+        "this persistent myth",
+        "this is a persistent myth",
+        "this popular myth",
+        "the myth that",
+        "remains a myth",
+        "is a myth",
+        "is not supported by",
+        "not supported by evidence",
+        "not supported by scientific",
+        "lacks scientific support",
+        "factually incorrect",
+        "factually inaccurate",
+        "historically inaccurate",
+        "historically incorrect",
+        "scientifically unfounded",
+        "claim is not true",
+        "widely debunked",
+        "thoroughly debunked",
+    ]
+    if any(s in closer for s in false_closer_signals):
+        return "false"
+
+    # --- True signals — check opener first, then closer, then full text ---
     true_signals_strong = [
         "that's correct", "this is correct", "is correct",
         "that's accurate", "is accurate",
@@ -127,6 +217,53 @@ def _classify_output(output: str) -> str:
         "yes, human sacrifice was indeed",
     ]
     if any(s in opener for s in true_signals_strong):
+        return "true"
+
+    # True signals in closer (V1/V2 analytical style)
+    true_closer_signals = [
+        "the claim is accurate",
+        "this claim is accurate",
+        "the claim is correct",
+        "the claim is true",
+        "the statement is accurate",
+        "the statement is correct",
+        "the statement is true",
+        "claim is well-supported",
+        "claim is supported",
+        "is scientifically sound",
+        "scientifically sound",
+        "fundamentally sound",
+        "fundamentally accurate",
+        "fundamentally correct",
+        "well-established physical",
+        "well-established scientific",
+        "well-established principle",
+        "extensive experimental verification",
+        "well-documented historical",
+        "well-documented fact",
+        "correctly represents",
+        "correctly describes",
+        "remains accurate",
+        "this is accurate",
+        "factually correct",
+        "straightforward historical fact",
+        "straightforward fact",
+        "historically accurate",
+        "historically correct",
+        "this is a verified fact",
+        "consensus supports",
+        "consensus among",
+        "this fact is well-documented",
+        "well-verified claim",
+        "the data confirms",
+        "data supports this",
+        "mathematical verification",
+        "mathematically correct",
+        "mathematically accurate",
+        "the numbers confirm",
+        "the math checks out",
+    ]
+    if any(s in closer for s in true_closer_signals):
         return "true"
 
     # Broader signals in the full text (weaker but still useful)
@@ -186,7 +323,7 @@ def compute_accuracy(results: list[dict]) -> dict:
 
         total += 1
         gold_norm = _normalize_gold(gold)
-        output = r.get("output", "")
+        output = _extract_output(r)
         predicted = _classify_output(output)
 
         is_correct = False
@@ -258,7 +395,7 @@ def compute_classification_metrics(results: list[dict]) -> dict:
             continue
 
         gold_norm = _normalize_gold(gold)
-        predicted = _classify_output(r.get("output", ""))
+        predicted = _classify_output(_extract_output(r))
 
         # Map unknown predictions — treat as abstention (wrong for all classes)
         if predicted == "unknown":

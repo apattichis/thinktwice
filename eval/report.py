@@ -17,7 +17,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
-from eval.metrics import compute_all_metrics, _classify_output
+from eval.metrics import compute_all_metrics, _classify_output, _extract_output
 
 logger = logging.getLogger(__name__)
 
@@ -236,7 +236,7 @@ def generate_domain_breakdown(results: list[dict], output_path: str) -> Optional
         if gold is None:
             continue
         domains[domain]["total"] += 1
-        predicted = _classify_output(r.get("output", ""))
+        predicted = _classify_output(_extract_output(r))
         is_correct = False
         if gold in ("true", True) and predicted == "true":
             is_correct = True

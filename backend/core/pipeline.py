@@ -571,6 +571,7 @@ class ThinkTwicePipeline:
         # Final metrics
         total_duration = int((time.monotonic() - start) * 1000)
         yield self._sse("pipeline_complete", {
+            "final_output": refined.content,
             "total_duration_ms": total_duration,
             "confidence_before": critique.confidence,
             "confidence_after": refined.confidence,

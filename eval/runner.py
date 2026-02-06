@@ -136,6 +136,7 @@ class EvalRunner:
 
         events = []
         final_output = ""
+        last_refine_content = ""
         metrics_data = {}
         start = time.monotonic()
 
@@ -156,6 +157,10 @@ class EvalRunner:
 
                 events.append({"event": event_name, "data": event_data})
 
+                # Capture refine step content as fallback for final output
+                if event_name == "step_complete" and event_data.get("step") == "refine":
+                    last_refine_content = event_data.get("content", "")
+
                 if event_name == "pipeline_complete":
                     final_output = event_data.get("final_output", "")
                     metrics_data = event_data
@@ -172,6 +177,10 @@ class EvalRunner:
             }
 
         duration = int((time.monotonic() - start) * 1000)
+
+        # Use refine step content as fallback if pipeline_complete didn't include final_output
+        if not final_output and last_refine_content:
+            final_output = last_refine_content
 
         return {
             "input": input_text,
