@@ -34,28 +34,38 @@ def download_dataset() -> list[dict]:
         with open(cache_file) as f:
             return json.load(f)
 
-    # Try HuggingFace datasets API (returns JSON rows)
+    # Try HuggingFace datasets server API (paginated JSON rows)
     try:
         import urllib.request
 
         logger.info("Downloading IFEval dataset from HuggingFace...")
 
-        # Use the HuggingFace datasets viewer API
-        api_url = "https://datasets-server.huggingface.co/rows?dataset=google%2FIFEval&config=default&split=train&offset=0&length=600"
-        req = urllib.request.Request(api_url, headers={"User-Agent": "ThinkTwice-Eval/1.0"})
-        with urllib.request.urlopen(req, timeout=30) as resp:
-            api_data = json.loads(resp.read().decode("utf-8"))
-
-        rows = api_data.get("rows", [])
         data = []
-        for row_wrapper in rows:
-            row = row_wrapper.get("row", row_wrapper)
-            data.append({
-                "prompt": row.get("prompt", ""),
-                "key": row.get("key", ""),
-                "instruction_id_list": row.get("instruction_id_list", []),
-                "kwargs": row.get("kwargs", []),
-            })
+        page_size = 100
+        offset = 0
+
+        while True:
+            api_url = f"https://datasets-server.huggingface.co/rows?dataset=google%2FIFEval&config=default&split=train&offset={offset}&length={page_size}"
+            req = urllib.request.Request(api_url, headers={"User-Agent": "ThinkTwice-Eval/1.0"})
+            with urllib.request.urlopen(req, timeout=30) as resp:
+                api_data = json.loads(resp.read().decode("utf-8"))
+
+            rows = api_data.get("rows", [])
+            if not rows:
+                break
+
+            for row_wrapper in rows:
+                row = row_wrapper.get("row", row_wrapper)
+                data.append({
+                    "prompt": row.get("prompt", ""),
+                    "key": row.get("key", ""),
+                    "instruction_id_list": row.get("instruction_id_list", []),
+                    "kwargs": row.get("kwargs", []),
+                })
+
+            offset += page_size
+            if len(rows) < page_size:
+                break
 
         if data:
             with open(cache_file, "w") as f:
