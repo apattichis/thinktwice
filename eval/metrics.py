@@ -108,6 +108,31 @@ def _classify_output(output: str) -> str:
     if any(s in opener for s in partial_signals):
         return "partial"
 
+    # --- Definitive true signals in closer (check BEFORE partial closer) ---
+    # These are unambiguous overall verdicts that should not be overridden by
+    # nuance/caveat signals like "oversimplifies the" or "true for practical purposes".
+    definitive_true_closer = [
+        "the claim is accurate",
+        "this claim is accurate",
+        "the claim is correct",
+        "the claim is true",
+        "the statement is accurate",
+        "the statement is correct",
+        "the statement is true",
+        "claim is well-supported",
+        "claim is supported by",
+        "is scientifically sound",
+        "fundamentally accurate",
+        "fundamentally correct",
+        "fundamentally sound",
+        "remains substantially true",
+        "substantially accurate",
+        "entirely accurate",
+        "claim is entirely",
+    ]
+    if any(s in closer for s in definitive_true_closer):
+        return "true"
+
     # Partial signals in closer (V1/V2 analytical style)
     partial_closer_signals = [
         "would be more accurate if",
