@@ -95,6 +95,17 @@ def _classify_output(output: str) -> str:
     return "unknown"
 
 
+def _normalize_gold(gold) -> str:
+    """Normalize gold verdict to standard string."""
+    if gold in (True, "true"):
+        return "true"
+    if gold in (False, "false"):
+        return "false"
+    if gold == "partial":
+        return "partial"
+    return str(gold)
+
+
 def compute_accuracy(results: list[dict]) -> dict:
     """Compute overall accuracy against gold verdicts."""
     if not results:
@@ -104,6 +115,7 @@ def compute_accuracy(results: list[dict]) -> dict:
     incorrect = 0
     total = 0
     per_domain = {}
+    per_difficulty = {}
     mismatches = []
 
     for r in results:
@@ -112,16 +124,16 @@ def compute_accuracy(results: list[dict]) -> dict:
             continue
 
         total += 1
+        gold_norm = _normalize_gold(gold)
         output = r.get("output", "")
         predicted = _classify_output(output)
 
         is_correct = False
-        if gold in ("true", True) and predicted == "true":
+        if gold_norm == "true" and predicted == "true":
             is_correct = True
-        elif gold in ("false", False) and predicted == "false":
+        elif gold_norm == "false" and predicted == "false":
             is_correct = True
-        elif gold == "partial" and predicted in ("partial", "true"):
-            # Partial claims marked as "true" with caveats count as correct
+        elif gold_norm == "partial" and predicted in ("partial", "true"):
             is_correct = True
 
         if is_correct:
@@ -130,7 +142,7 @@ def compute_accuracy(results: list[dict]) -> dict:
             incorrect += 1
             mismatches.append({
                 "input": r.get("input", "")[:100],
-                "gold": gold,
+                "gold": gold_norm,
                 "predicted": predicted,
             })
 
@@ -141,17 +153,100 @@ def compute_accuracy(results: list[dict]) -> dict:
         if is_correct:
             per_domain[domain]["correct"] += 1
 
+        difficulty = r.get("difficulty", "unknown")
+        if difficulty not in per_difficulty:
+            per_difficulty[difficulty] = {"correct": 0, "total": 0}
+        per_difficulty[difficulty]["total"] += 1
+        if is_correct:
+            per_difficulty[difficulty]["correct"] += 1
+
     return {
         "accuracy": correct / total if total > 0 else 0.0,
         "total": total,
         "correct": correct,
         "incorrect": incorrect,
         "skipped": len(results) - total,
-        "mismatches": mismatches[:10],  # Top 10 for debugging
+        "mismatches": mismatches[:10],
         "per_domain": {
             d: {**v, "accuracy": v["correct"] / v["total"] if v["total"] > 0 else 0.0}
             for d, v in per_domain.items()
         },
+        "per_difficulty": {
+            d: {**v, "accuracy": v["correct"] / v["total"] if v["total"] > 0 else 0.0}
+            for d, v in per_difficulty.items()
+        },
+    }
+
+
+def compute_classification_metrics(results: list[dict]) -> dict:
+    """Compute per-class precision, recall, F1, and macro/weighted averages.
+
+    Standard metrics for publishable fact-checking evaluation.
+    Classes: true, false, partial.
+    """
+    classes = ["true", "false", "partial"]
+    # Confusion matrix counts
+    tp = {c: 0 for c in classes}
+    fp = {c: 0 for c in classes}
+    fn = {c: 0 for c in classes}
+    total_per_class = {c: 0 for c in classes}
+
+    for r in results:
+        gold = r.get("gold_verdict")
+        if gold is None:
+            continue
+
+        gold_norm = _normalize_gold(gold)
+        predicted = _classify_output(r.get("output", ""))
+
+        # Map unknown predictions — treat as abstention (wrong for all classes)
+        if predicted == "unknown":
+            if gold_norm in classes:
+                fn[gold_norm] += 1
+                total_per_class[gold_norm] += 1
+            continue
+
+        if gold_norm in classes:
+            total_per_class[gold_norm] += 1
+
+        for c in classes:
+            if predicted == c and gold_norm == c:
+                tp[c] += 1
+            elif predicted == c and gold_norm != c:
+                fp[c] += 1
+            elif predicted != c and gold_norm == c:
+                fn[c] += 1
+
+    per_class = {}
+    for c in classes:
+        precision = tp[c] / (tp[c] + fp[c]) if (tp[c] + fp[c]) > 0 else 0.0
+        recall = tp[c] / (tp[c] + fn[c]) if (tp[c] + fn[c]) > 0 else 0.0
+        f1 = 2 * precision * recall / (precision + recall) if (precision + recall) > 0 else 0.0
+        per_class[c] = {
+            "precision": precision,
+            "recall": recall,
+            "f1": f1,
+            "support": total_per_class[c],
+        }
+
+    # Macro average (unweighted mean across classes)
+    macro_p = sum(per_class[c]["precision"] for c in classes) / len(classes)
+    macro_r = sum(per_class[c]["recall"] for c in classes) / len(classes)
+    macro_f1 = sum(per_class[c]["f1"] for c in classes) / len(classes)
+
+    # Weighted average (weighted by class support)
+    total_support = sum(total_per_class[c] for c in classes)
+    if total_support > 0:
+        weighted_p = sum(per_class[c]["precision"] * total_per_class[c] for c in classes) / total_support
+        weighted_r = sum(per_class[c]["recall"] * total_per_class[c] for c in classes) / total_support
+        weighted_f1 = sum(per_class[c]["f1"] * total_per_class[c] for c in classes) / total_support
+    else:
+        weighted_p = weighted_r = weighted_f1 = 0.0
+
+    return {
+        "per_class": per_class,
+        "macro": {"precision": macro_p, "recall": macro_r, "f1": macro_f1},
+        "weighted": {"precision": weighted_p, "recall": weighted_r, "f1": weighted_f1},
     }
 
 
@@ -299,6 +394,7 @@ def compute_all_metrics(results: list[dict]) -> dict:
     """Compute all metrics for a set of results."""
     return {
         "accuracy": compute_accuracy(results),
+        "classification": compute_classification_metrics(results),
         "constraint_satisfaction": compute_constraint_satisfaction(results),
         "verification": compute_verification_metrics(results),
         "gate_efficiency": compute_gate_efficiency(results),

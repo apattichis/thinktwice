@@ -39,6 +39,9 @@ def get_dataset(name: str, max_samples: int | None = None) -> list[dict]:
     if name == "factcheck50":
         from eval.datasets.factcheck50 import get_dataset
         return get_dataset()[:max_samples] if max_samples else get_dataset()
+    elif name == "factcheck_bench":
+        from eval.datasets.factcheck_bench import get_dataset
+        return get_dataset()[:max_samples] if max_samples else get_dataset()
     elif name == "truthfulqa":
         from eval.datasets.truthfulqa import get_dataset
         return get_dataset(max_samples=max_samples)
@@ -46,7 +49,7 @@ def get_dataset(name: str, max_samples: int | None = None) -> list[dict]:
         from eval.datasets.halueval import get_dataset
         return get_dataset(max_samples=max_samples)
     else:
-        raise ValueError(f"Unknown dataset: {name}. Choose from: factcheck50, truthfulqa, halueval")
+        raise ValueError(f"Unknown dataset: {name}. Choose from: factcheck50, factcheck_bench, truthfulqa, halueval")
 
 
 async def run_pipeline(dataset: list[dict], dataset_name: str, version: str, output_dir: str, max_samples: int | None = None):
@@ -170,7 +173,7 @@ Examples:
         """,
     )
 
-    parser.add_argument("--dataset", choices=["factcheck50", "truthfulqa", "halueval"],
+    parser.add_argument("--dataset", choices=["factcheck50", "factcheck_bench", "truthfulqa", "halueval"],
                         help="Dataset to evaluate on")
     parser.add_argument("--pipeline", choices=["v1", "v2", "single_shot", "all"], default="v2",
                         help="Pipeline version: v1, v2, single_shot, or all (runs all 3 baselines)")
