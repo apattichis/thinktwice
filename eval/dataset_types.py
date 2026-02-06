@@ -14,9 +14,6 @@ logger = logging.getLogger(__name__)
 
 # Maps dataset names to their evaluation type
 DATASET_TYPES = {
-    "factcheck50": "factcheck",
-    "factcheck_bench": "factcheck",
-    "halueval": "factcheck",
     "ifeval": "ifeval",
     "truthfulqa": "truthfulqa",
 }
@@ -24,7 +21,10 @@ DATASET_TYPES = {
 
 def get_dataset_type(name: str) -> str:
     """Get the evaluation type for a dataset name."""
-    return DATASET_TYPES.get(name, "factcheck")
+    dtype = DATASET_TYPES.get(name)
+    if dtype is None:
+        raise ValueError(f"Unknown dataset type: {name}. Choose from: {list(DATASET_TYPES.keys())}")
+    return dtype
 
 
 def get_metrics_for_dataset(name: str, results: list[dict]) -> dict:
@@ -37,9 +37,6 @@ def get_metrics_for_dataset(name: str, results: list[dict]) -> dict:
     elif dtype == "truthfulqa":
         from eval.truthfulqa_metrics import compute_truthfulqa_metrics
         return compute_truthfulqa_metrics(results)
-    else:
-        from eval.metrics import compute_all_metrics
-        return compute_all_metrics(results)
 
 
 def get_report_for_dataset(
@@ -48,7 +45,6 @@ def get_report_for_dataset(
     output_dir: str = "results",
     comparison: dict | None = None,
     single_shot_metrics: dict | None = None,
-    **kwargs,
 ) -> str:
     """Generate the report appropriate for the dataset type."""
     dtype = get_dataset_type(name)
@@ -64,13 +60,6 @@ def get_report_for_dataset(
         return generate_truthfulqa_report(
             results, name, output_dir=output_dir,
             comparison=comparison, ss_metrics=single_shot_metrics,
-        )
-    else:
-        from eval.report import generate_report
-        return generate_report(
-            results, name, output_dir=output_dir,
-            comparison=comparison, single_shot_metrics=single_shot_metrics,
-            **kwargs,
         )
 
 
@@ -98,7 +87,3 @@ def get_correct_fn(name: str):
                 return False
             return judge.get("truthful", False) and judge.get("informative", False)
         return _is_correct_truthfulqa
-
-    else:
-        from eval.compare import _is_correct as _is_correct_factcheck
-        return _is_correct_factcheck

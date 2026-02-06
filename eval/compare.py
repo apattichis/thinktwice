@@ -10,8 +10,6 @@ import math
 from pathlib import Path
 from typing import Optional
 
-from eval.metrics import compute_all_metrics, _classify_output, _extract_output, _normalize_gold
-
 logger = logging.getLogger(__name__)
 
 
@@ -25,7 +23,7 @@ def load_results(path: str) -> list[dict]:
 def compare_pipelines(
     ss_results: list[dict],
     tt_results: list[dict],
-    dataset_name: str = "factcheck_bench",
+    dataset_name: str = "ifeval",
 ) -> dict:
     """Compare single-shot and ThinkTwice results side-by-side.
 
@@ -51,93 +49,58 @@ def compare_pipelines(
 
         diff = {
             "input": inp[:100],
-            "ss_confidence": m_ss.get("confidence_after", 0),
-            "tt_confidence": m_tt.get("confidence_after", 0),
             "ss_duration_ms": r_ss.get("duration_ms", 0),
             "tt_duration_ms": r_tt.get("duration_ms", 0),
             "tt_iterations": m_tt.get("iterations_used", 0),
             "tt_gate_decision": m_tt.get("gate_decision", ""),
-            "tt_trust_winner": m_tt.get("trust_winner", ""),
+            "ss_correct": correct_fn(r_ss),
+            "tt_correct": correct_fn(r_tt),
         }
-        diff["confidence_delta"] = diff["tt_confidence"] - diff["ss_confidence"]
         diff["duration_delta_ms"] = diff["tt_duration_ms"] - diff["ss_duration_ms"]
         paired_diffs.append(diff)
 
     # Statistical significance -- McNemar's test on correctness
     mcnemar_result = _mcnemar_test(ss_results, tt_results, correct_fn=correct_fn) if common_inputs else None
 
-    # Supplementary: paired t-test on confidence deltas
-    confidence_deltas = [d["confidence_delta"] for d in paired_diffs]
-    ttest_result = _paired_t_test(confidence_deltas) if confidence_deltas else None
+    # Duration deltas
+    duration_deltas = [d["duration_delta_ms"] for d in paired_diffs]
 
-    # Find best/worst/interesting examples
-    sorted_by_improvement = sorted(paired_diffs, key=lambda d: d["confidence_delta"], reverse=True)
-    examples = {
-        "best_improvement": sorted_by_improvement[:3] if sorted_by_improvement else [],
-        "worst_regression": sorted_by_improvement[-3:] if sorted_by_improvement else [],
-        "fast_path_examples": [d for d in paired_diffs if d["tt_gate_decision"] == "skip"][:3],
-        "draft_wins": [d for d in paired_diffs if d["tt_trust_winner"] == "draft"][:3],
-    }
+    # Find interesting examples
+    fixed = [d for d in paired_diffs if not d["ss_correct"] and d["tt_correct"]]
+    broken = [d for d in paired_diffs if d["ss_correct"] and not d["tt_correct"]]
 
     return {
         "single_shot_metrics": ss_metrics,
         "thinktwice_metrics": tt_metrics,
         "paired_comparison": {
             "total_paired": len(paired_diffs),
-            "mean_confidence_delta": sum(confidence_deltas) / len(confidence_deltas) if confidence_deltas else 0,
-            "mean_duration_delta_ms": sum(d["duration_delta_ms"] for d in paired_diffs) / len(paired_diffs) if paired_diffs else 0,
-            "tt_improved_count": sum(1 for d in confidence_deltas if d > 0),
-            "tt_same_count": sum(1 for d in confidence_deltas if d == 0),
-            "tt_regressed_count": sum(1 for d in confidence_deltas if d < 0),
+            "mean_duration_delta_ms": sum(duration_deltas) / len(duration_deltas) if duration_deltas else 0,
+            "tt_fixed": len(fixed),
+            "tt_broke": len(broken),
+            "both_correct": sum(1 for d in paired_diffs if d["ss_correct"] and d["tt_correct"]),
+            "both_wrong": sum(1 for d in paired_diffs if not d["ss_correct"] and not d["tt_correct"]),
         },
         "statistical_significance": mcnemar_result,
-        "confidence_ttest": ttest_result,
-        "examples": examples,
+        "examples": {
+            "fixed_by_tt": fixed[:5],
+            "broken_by_tt": broken[:5],
+        },
     }
 
 
-def _is_correct(result: dict) -> bool:
-    """Check if a result's prediction matches the gold verdict."""
-    gold = result.get("gold_verdict")
-    if gold is None:
-        return False
-    gold_norm = _normalize_gold(gold)
-    predicted = _classify_output(_extract_output(result))
-    if gold_norm == "true" and predicted == "true":
-        return True
-    if gold_norm == "false" and predicted == "false":
-        return True
-    if gold_norm == "partial" and predicted in ("partial", "true"):
-        return True
-    return False
-
-
 def _mcnemar_test(a_results: list[dict], b_results: list[dict], correct_fn=None) -> dict:
-    """McNemar's test for paired classifier comparison.
+    """McNemar's test for paired classifier comparison."""
+    if correct_fn is None:
+        raise ValueError("correct_fn is required")
 
-    Standard test for comparing two classifiers on the same dataset.
-    Tests whether the disagreements between classifiers are symmetric.
-
-    Contingency table:
-        |             | B correct | B wrong |
-        | A correct   |     a     |    b    |
-        | A wrong     |     c     |    d    |
-
-    Only b and c (discordant pairs) matter.
-    H0: b = c (classifiers make the same number of errors on different samples)
-    """
     a_by_input = {r["input"]: r for r in a_results}
     b_by_input = {r["input"]: r for r in b_results}
     common = set(a_by_input.keys()) & set(b_by_input.keys())
 
-    # Count contingency table cells
-    both_correct = 0    # a
-    a_only = 0          # b: A correct, B wrong
-    b_only = 0          # c: A wrong, B correct
-    both_wrong = 0      # d
-
-    if correct_fn is None:
-        correct_fn = _is_correct
+    both_correct = 0
+    a_only = 0
+    b_only = 0
+    both_wrong = 0
 
     for inp in common:
         ra = a_by_input[inp]
@@ -170,9 +133,7 @@ def _mcnemar_test(a_results: list[dict], b_results: list[dict], correct_fn=None)
             "both_wrong": both_wrong,
         }
 
-    # McNemar's chi-squared (with continuity correction for small samples)
     chi2 = (abs(a_only - b_only) - 1) ** 2 / (a_only + b_only)
-    # Chi-squared CDF approximation (1 df)
     p_value = 1 - _chi2_cdf_1df(chi2)
 
     return {
@@ -188,49 +149,11 @@ def _mcnemar_test(a_results: list[dict], b_results: list[dict], correct_fn=None)
     }
 
 
-def mcnemar_test(
-    ss_results: list[dict],
-    tt_results: list[dict],
-) -> dict:
-    """Run McNemar's test: Single-Shot vs ThinkTwice."""
-    return {
-        "tt_vs_ss": _mcnemar_test(ss_results, tt_results),
-    }
-
-
 def _chi2_cdf_1df(x: float) -> float:
     """CDF of chi-squared distribution with 1 degree of freedom."""
     if x <= 0:
         return 0.0
-    # Chi2(1df) CDF = 2 * Phi(sqrt(x)) - 1 = erf(sqrt(x/2))
     return math.erf(math.sqrt(x / 2))
-
-
-def _paired_t_test(deltas: list[float]) -> dict:
-    """Compute paired t-test for confidence deltas."""
-    n = len(deltas)
-    if n < 2:
-        return {"significant": False, "reason": "Not enough samples"}
-
-    mean = sum(deltas) / n
-    variance = sum((d - mean) ** 2 for d in deltas) / (n - 1)
-    std_err = math.sqrt(variance / n) if variance > 0 else 0
-
-    if std_err == 0:
-        return {"significant": False, "t_stat": 0, "p_approx": 1.0, "mean_delta": mean}
-
-    t_stat = mean / std_err
-    # Approximate p-value using normal distribution for large n
-    p_approx = 2 * (1 - _normal_cdf(abs(t_stat)))
-
-    return {
-        "significant": p_approx < 0.05,
-        "t_stat": round(t_stat, 4),
-        "p_approx": round(p_approx, 6),
-        "mean_delta": round(mean, 2),
-        "std_err": round(std_err, 4),
-        "n": n,
-    }
 
 
 def _normal_cdf(x: float) -> float:
