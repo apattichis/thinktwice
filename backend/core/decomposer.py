@@ -1,6 +1,6 @@
 """Decomposer module - breaks input into structured constraints (DeCRIM-inspired).
 
-Phase 0 of the v2 pipeline. Analyzes user input and produces a set of
+Phase 0 of the ThinkTwice pipeline. Analyzes user input and produces a set of
 constraints that a complete response must satisfy.
 """
 

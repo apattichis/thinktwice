@@ -1,12 +1,11 @@
-"""Evaluation runner — processes datasets through the ThinkTwice pipeline.
+"""Evaluation runner -- processes datasets through the ThinkTwice pipeline.
 
-Supports single-shot baseline, v1, and v2 pipelines. Tracks all metrics
+Supports single-shot baseline and ThinkTwice pipeline. Tracks all metrics
 per sample, saves results to JSON, and supports resuming from checkpoints.
 
 Baselines:
   - single_shot: Raw Claude API call, no pipeline (control group)
-  - v1: Original 4-step linear pipeline
-  - v2: Research-inspired pipeline with gating, iteration, and trust ranking
+  - thinktwice: Self-correcting pipeline with gating, iteration, and trust ranking
 """
 
 import asyncio
@@ -40,7 +39,7 @@ class EvalRunner:
 
     def __init__(
         self,
-        pipeline_version: str = "v2",
+        pipeline_version: str = "thinktwice",
         output_dir: str = "results",
         checkpoint_interval: int = 5,
     ):
@@ -81,7 +80,7 @@ class EvalRunner:
     async def run_single_shot(self, input_text: str, mode: str = "question") -> dict:
         """Run a single-shot baseline (raw Claude, no pipeline).
 
-        This is the control group — same model, zero self-correction.
+        This is the control group -- same model, zero self-correction.
         Shows the raw value added by the pipeline.
         """
         from models.schemas import ThinkRequest, InputMode
@@ -141,7 +140,7 @@ class EvalRunner:
         start = time.monotonic()
 
         try:
-            async for event_str in self.pipeline.execute(request, version=self.pipeline_version):
+            async for event_str in self.pipeline.execute(request):
                 # Parse SSE event
                 lines = event_str.strip().split("\n")
                 event_name = ""
@@ -166,7 +165,7 @@ class EvalRunner:
                     metrics_data = event_data
 
         except Exception as e:
-            logger.error("Pipeline failed for input: %s — %s", input_text[:100], e)
+            logger.error("Pipeline failed for input: %s -- %s", input_text[:100], e)
             return {
                 "input": input_text,
                 "mode": mode,

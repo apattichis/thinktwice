@@ -1,8 +1,8 @@
-"""Pipeline orchestrator - runs v1 (4-step) or v2 (research-inspired) pipeline.
+"""Pipeline orchestrator - runs the ThinkTwice self-correcting pipeline.
 
-The v2 pipeline implements:
-  Phase 0: Decompose → Phase 1: Draft → Phase 2: Gate →
-  [Phase 3: Critique → Phase 4: Verify → Phase 5: Refine → Phase 6: Converge]×N →
+The pipeline implements:
+  Phase 0: Decompose -> Phase 1: Draft -> Phase 2: Gate ->
+  [Phase 3: Critique -> Phase 4: Verify -> Phase 5: Refine -> Phase 6: Converge]xN ->
   Phase 7: Trust & Rank
 """
 
@@ -29,7 +29,7 @@ logger = logging.getLogger(__name__)
 
 
 class ThinkTwicePipeline:
-    """Orchestrates the ThinkTwice reasoning pipeline (v1 and v2)."""
+    """Orchestrates the ThinkTwice reasoning pipeline."""
 
     def __init__(
         self,
@@ -44,7 +44,6 @@ class ThinkTwicePipeline:
         self_verify_parallel: bool = True,
         trust_blend_enabled: bool = True,
     ):
-        # V1 modules
         self.drafter = Drafter(llm)
         self.critic = Critic(llm)
         self.verifier = Verifier(
@@ -56,7 +55,6 @@ class ThinkTwicePipeline:
         self.scraper = scraper
         self.search = search
 
-        # V2 modules
         self.decomposer = Decomposer(llm)
         self.gatekeeper = Gatekeeper(llm, gate_threshold, gate_min_pass_rate)
         self.convergence = ConvergenceChecker(llm)
@@ -71,15 +69,15 @@ class ThinkTwicePipeline:
         return f"event: {event}\ndata: {json.dumps(data)}\n\n"
 
     # ------------------------------------------------------------------
-    # V2 Pipeline
+    # ThinkTwice Pipeline
     # ------------------------------------------------------------------
-    async def execute_v2(
+    async def execute_pipeline(
         self,
         request: ThinkRequest,
         max_iterations: Optional[int] = None,
         gate_threshold: Optional[int] = None,
     ) -> AsyncGenerator[str, None]:
-        """Execute the v2 research-inspired pipeline.
+        """Execute the ThinkTwice self-correcting pipeline.
 
         Yields SSE events for each phase of the pipeline.
         """
@@ -199,12 +197,12 @@ class ThinkTwicePipeline:
         fast_path = gate_result.gate_decision == "skip"
 
         if fast_path:
-            # Fast path — skip refinement loop
+            # Fast path -- skip refinement loop
             yield self._sse("step_complete", {
                 "step": "gate",
                 "fast_path": True,
             })
-            logger.info("Gate: fast path — skipping refinement loop")
+            logger.info("Gate: fast path -- skipping refinement loop")
         else:
             # Refinement loop
             while True:
@@ -435,179 +433,23 @@ class ThinkTwicePipeline:
         })
 
     # ------------------------------------------------------------------
-    # V1 Pipeline (preserved for backward compatibility)
-    # ------------------------------------------------------------------
-    async def execute_v1(self, request: ThinkRequest) -> AsyncGenerator[str, None]:
-        """Execute the original v1 4-step pipeline."""
-        start = time.monotonic()
-        user_input = request.input
-
-        # Pre-process: if URL mode, extract content first
-        if request.mode == InputMode.URL:
-            try:
-                yield self._sse("step_start", {
-                    "step": "extract",
-                    "status": "running",
-                    "label": "Extracting article content...",
-                })
-                extracted = await self.scraper.extract(request.input)
-                user_input = f"Analyze and fact-check this article:\n\n{extracted}"
-                yield self._sse("step_complete", {
-                    "step": "extract",
-                    "status": "complete",
-                    "label": "Content extracted",
-                })
-            except ValueError as e:
-                yield self._sse("step_complete", {
-                    "step": "extract",
-                    "status": "error",
-                    "error": str(e),
-                })
-                return
-
-        # Step 1: Draft
-        draft_start = time.monotonic()
-        yield self._sse("step_start", {
-            "step": "draft",
-            "status": "running",
-            "label": "Drafting initial response...",
-        })
-
-        draft_content = ""
-        async for token in self.drafter.stream(user_input, request.mode):
-            draft_content += token
-            yield self._sse("step_stream", {"step": "draft", "token": token})
-
-        draft_duration = int((time.monotonic() - draft_start) * 1000)
-        yield self._sse("step_complete", {
-            "step": "draft",
-            "status": "complete",
-            "duration_ms": draft_duration,
-            "content": draft_content,
-        })
-
-        # Step 2: Critique
-        critique_start = time.monotonic()
-        yield self._sse("step_start", {
-            "step": "critique",
-            "status": "running",
-            "label": "Self-critiquing...",
-        })
-
-        critique = await self.critic.analyze(user_input, draft_content, request.mode)
-        critique_duration = int((time.monotonic() - critique_start) * 1000)
-
-        yield self._sse("step_complete", {
-            "step": "critique",
-            "status": "complete",
-            "duration_ms": critique_duration,
-            "content": critique.model_dump(),
-        })
-
-        # Step 3: Verify
-        verify_start = time.monotonic()
-        claims_count = len(critique.claims_to_verify)
-        yield self._sse("step_start", {
-            "step": "verify",
-            "status": "running",
-            "label": f"Fact-checking {claims_count} claims...",
-        })
-
-        verified_count = 0
-        refuted_count = 0
-        unclear_count = 0
-        web_verified = True
-
-        async for result in self.verifier.check_claims(critique.claims_to_verify):
-            yield self._sse("verify_claim", result.model_dump())
-            if result.verdict == "verified":
-                verified_count += 1
-            elif result.verdict == "refuted":
-                refuted_count += 1
-            else:
-                unclear_count += 1
-            if not result.web_verified:
-                web_verified = False
-
-        verify_duration = int((time.monotonic() - verify_start) * 1000)
-        verification_results = self.verifier.get_results()
-
-        yield self._sse("step_complete", {
-            "step": "verify",
-            "status": "complete",
-            "duration_ms": verify_duration,
-            "verified": verified_count,
-            "refuted": refuted_count,
-            "unclear": unclear_count,
-            "web_verified": web_verified,
-        })
-
-        # Step 4: Refine
-        refine_start = time.monotonic()
-        yield self._sse("step_start", {
-            "step": "refine",
-            "status": "running",
-            "label": "Refining with corrections...",
-        })
-
-        refined = await self.refiner.produce(
-            user_input,
-            draft_content,
-            critique,
-            verification_results,
-            request.mode,
-        )
-        refine_duration = int((time.monotonic() - refine_start) * 1000)
-
-        yield self._sse("step_complete", {
-            "step": "refine",
-            "status": "complete",
-            "duration_ms": refine_duration,
-            "content": refined.content,
-            "confidence": refined.confidence,
-            "changes_made": refined.changes_made,
-        })
-
-        # Final metrics
-        total_duration = int((time.monotonic() - start) * 1000)
-        yield self._sse("pipeline_complete", {
-            "final_output": refined.content,
-            "total_duration_ms": total_duration,
-            "confidence_before": critique.confidence,
-            "confidence_after": refined.confidence,
-            "issues_found": len(critique.issues),
-            "issues_addressed": len(refined.changes_made),
-            "claims_checked": claims_count,
-            "claims_verified": verified_count,
-            "claims_refuted": refuted_count,
-            "claims_unclear": unclear_count,
-            "web_verified": web_verified,
-        })
-
-    # ------------------------------------------------------------------
-    # Default execute (routes to v2 by default)
+    # Default execute (routes to ThinkTwice pipeline)
     # ------------------------------------------------------------------
     async def execute(
         self,
         request: ThinkRequest,
-        version: str = "v2",
         max_iterations: Optional[int] = None,
         gate_threshold: Optional[int] = None,
     ) -> AsyncGenerator[str, None]:
-        """Execute the pipeline (v1 or v2).
+        """Execute the ThinkTwice pipeline.
 
         Args:
             request: The think request.
-            version: Pipeline version ("v1" or "v2").
-            max_iterations: Override max iterations (v2 only).
-            gate_threshold: Override gate threshold (v2 only).
+            max_iterations: Override max iterations.
+            gate_threshold: Override gate threshold.
         """
-        if version == "v1":
-            async for event in self.execute_v1(request):
-                yield event
-        else:
-            async for event in self.execute_v2(request, max_iterations, gate_threshold):
-                yield event
+        async for event in self.execute_pipeline(request, max_iterations, gate_threshold):
+            yield event
 
     async def single_shot(self, request: ThinkRequest) -> str:
         """Run a single-shot response without the pipeline for comparison."""

@@ -11,14 +11,7 @@ interface Step {
   color: string;
 }
 
-const v1Steps: Step[] = [
-  { name: "draft", label: "Draft", color: "#5856D6" },
-  { name: "critique", label: "Critique", color: "#FF9500" },
-  { name: "verify", label: "Verify", color: "#AF52DE" },
-  { name: "refine", label: "Refine", color: "#34C759" },
-];
-
-const v2Steps: Step[] = [
+const steps: Step[] = [
   { name: "decompose", label: "Decompose", color: "#007AFF" },
   { name: "draft", label: "Draft", color: "#5856D6" },
   { name: "gate", label: "Gate", color: "#FF9500" },
@@ -31,17 +24,14 @@ const v2Steps: Step[] = [
 interface PipelineStepperProps {
   statuses: Record<string, StepStatus>;
   durations: Record<string, number | undefined>;
-  version?: "v1" | "v2";
   iteration?: number;
 }
 
-export function PipelineStepper({ statuses, durations, version = "v2", iteration }: PipelineStepperProps) {
-  const steps = version === "v2" ? v2Steps : v1Steps;
-
+export function PipelineStepper({ statuses, durations, iteration }: PipelineStepperProps) {
   return (
     <div className="py-4">
       {/* Iteration badge */}
-      {version === "v2" && iteration !== undefined && iteration > 0 && (
+      {iteration !== undefined && iteration > 0 && (
         <div className="text-center mb-3">
           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-medium tracking-wide"
             style={{

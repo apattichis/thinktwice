@@ -1,6 +1,6 @@
 """Trust-and-rank comparator (ART-inspired).
 
-Phase 7 of the v2 pipeline. Side-by-side comparison of original draft
+Phase 7 of the ThinkTwice pipeline. Side-by-side comparison of original draft
 vs refined output. Picks the winner or blends the best parts of both.
 """
 
@@ -10,7 +10,7 @@ from typing import Optional
 from services.llm import LLMService
 from core.schemas import (
     Constraint,
-    VerificationResultV2,
+    VerificationResult,
     ClaimVerdict,
     TrustResult,
 )
@@ -77,7 +77,7 @@ def _format_constraints(constraints: list[Constraint]) -> str:
     return "\n".join(lines)
 
 
-def _format_verifications(verifications: list[VerificationResultV2]) -> str:
+def _format_verifications(verifications: list[VerificationResult]) -> str:
     """Format verification results for the prompt."""
     if not verifications:
         return "No verification results available."
@@ -102,7 +102,7 @@ class Truster:
         original_draft: str,
         refined_output: str,
         constraints: list[Constraint],
-        verifications: list[VerificationResultV2],
+        verifications: list[VerificationResult],
     ) -> TrustResult:
         """Compare draft and refined output, select the best.
 

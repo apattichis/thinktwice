@@ -32,7 +32,6 @@ export interface VerificationResult {
   web_verified: boolean;
 }
 
-// V2 types
 export interface Constraint {
   id: string;
   text: string;
@@ -66,14 +65,11 @@ export interface PipelineMetrics {
   total_duration_ms: number;
   confidence_before: number;
   confidence_after: number;
-  issues_found: number;
-  issues_addressed: number;
   claims_checked: number;
   claims_verified: number;
   claims_refuted: number;
   claims_unclear: number;
   web_verified: boolean;
-  // V2 metrics
   gate_decision?: string;
   fast_path?: boolean;
   iterations_used?: number;
@@ -109,7 +105,6 @@ export interface RefineState {
   duration_ms?: number;
 }
 
-// V2 state
 export interface DecomposeState {
   status: StepStatus;
   constraints: Constraint[];
@@ -131,13 +126,11 @@ export interface TrustState {
 export interface PipelineState {
   isRunning: boolean;
   error?: string;
-  pipelineVersion: "v1" | "v2";
   currentIteration: number;
   draft: DraftState;
   critique: CritiqueState;
   verify: VerifyState;
   refine: RefineState;
-  // V2 phases
   decompose: DecomposeState;
   gate: GateState;
   trust: TrustState;

@@ -21,7 +21,7 @@ interface MetricsBarProps {
 
 export function MetricsBar({ metrics }: MetricsBarProps) {
   const delta = metrics.confidence_after - metrics.confidence_before;
-  const isV2 = metrics.gate_decision !== undefined;
+  const hasGate = metrics.gate_decision !== undefined;
 
   return (
     <motion.div
@@ -53,7 +53,7 @@ export function MetricsBar({ metrics }: MetricsBarProps) {
           }
         />
 
-        {isV2 && (
+        {hasGate && (
           <>
             <MetricCell
               icon={<Zap className="w-4 h-4 text-text-tertiary" />}
@@ -141,8 +141,8 @@ export function MetricsBar({ metrics }: MetricsBarProps) {
           </div>
         </div>
 
-        {/* V2-specific metrics */}
-        {isV2 && (
+        {/* Pipeline-specific metrics */}
+        {hasGate && (
           <>
             <div className="w-px h-10 bg-border-subtle" />
 

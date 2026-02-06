@@ -22,46 +22,46 @@ def load_results(path: str) -> list[dict]:
     return data.get("results", data) if isinstance(data, dict) else data
 
 
-def compare_v1_v2(
-    v1_results: list[dict],
-    v2_results: list[dict],
+def compare_pipelines(
+    ss_results: list[dict],
+    tt_results: list[dict],
 ) -> dict:
-    """Compare v1 and v2 results side-by-side.
+    """Compare single-shot and ThinkTwice results side-by-side.
 
     Returns comparison metrics and example diffs.
     """
-    v1_metrics = compute_all_metrics(v1_results)
-    v2_metrics = compute_all_metrics(v2_results)
+    ss_metrics = compute_all_metrics(ss_results)
+    tt_metrics = compute_all_metrics(tt_results)
 
     # Per-sample comparison (match by input)
-    v1_by_input = {r["input"]: r for r in v1_results}
-    v2_by_input = {r["input"]: r for r in v2_results}
-    common_inputs = set(v1_by_input.keys()) & set(v2_by_input.keys())
+    ss_by_input = {r["input"]: r for r in ss_results}
+    tt_by_input = {r["input"]: r for r in tt_results}
+    common_inputs = set(ss_by_input.keys()) & set(tt_by_input.keys())
 
     paired_diffs = []
     for inp in common_inputs:
-        r1 = v1_by_input[inp]
-        r2 = v2_by_input[inp]
+        r_ss = ss_by_input[inp]
+        r_tt = tt_by_input[inp]
 
-        m1 = r1.get("metrics", {})
-        m2 = r2.get("metrics", {})
+        m_ss = r_ss.get("metrics", {})
+        m_tt = r_tt.get("metrics", {})
 
         diff = {
             "input": inp[:100],
-            "v1_confidence": m1.get("confidence_after", 0),
-            "v2_confidence": m2.get("confidence_after", 0),
-            "v1_duration_ms": r1.get("duration_ms", 0),
-            "v2_duration_ms": r2.get("duration_ms", 0),
-            "v2_iterations": m2.get("iterations_used", 0),
-            "v2_gate_decision": m2.get("gate_decision", ""),
-            "v2_trust_winner": m2.get("trust_winner", ""),
+            "ss_confidence": m_ss.get("confidence_after", 0),
+            "tt_confidence": m_tt.get("confidence_after", 0),
+            "ss_duration_ms": r_ss.get("duration_ms", 0),
+            "tt_duration_ms": r_tt.get("duration_ms", 0),
+            "tt_iterations": m_tt.get("iterations_used", 0),
+            "tt_gate_decision": m_tt.get("gate_decision", ""),
+            "tt_trust_winner": m_tt.get("trust_winner", ""),
         }
-        diff["confidence_delta"] = diff["v2_confidence"] - diff["v1_confidence"]
-        diff["duration_delta_ms"] = diff["v2_duration_ms"] - diff["v1_duration_ms"]
+        diff["confidence_delta"] = diff["tt_confidence"] - diff["ss_confidence"]
+        diff["duration_delta_ms"] = diff["tt_duration_ms"] - diff["ss_duration_ms"]
         paired_diffs.append(diff)
 
-    # Statistical significance — McNemar's test on correctness (standard for classifier comparison)
-    mcnemar_result = _mcnemar_test(v1_results, v2_results) if common_inputs else None
+    # Statistical significance -- McNemar's test on correctness
+    mcnemar_result = _mcnemar_test(ss_results, tt_results) if common_inputs else None
 
     # Supplementary: paired t-test on confidence deltas
     confidence_deltas = [d["confidence_delta"] for d in paired_diffs]
@@ -72,20 +72,20 @@ def compare_v1_v2(
     examples = {
         "best_improvement": sorted_by_improvement[:3] if sorted_by_improvement else [],
         "worst_regression": sorted_by_improvement[-3:] if sorted_by_improvement else [],
-        "fast_path_examples": [d for d in paired_diffs if d["v2_gate_decision"] == "skip"][:3],
-        "draft_wins": [d for d in paired_diffs if d["v2_trust_winner"] == "draft"][:3],
+        "fast_path_examples": [d for d in paired_diffs if d["tt_gate_decision"] == "skip"][:3],
+        "draft_wins": [d for d in paired_diffs if d["tt_trust_winner"] == "draft"][:3],
     }
 
     return {
-        "v1_metrics": v1_metrics,
-        "v2_metrics": v2_metrics,
+        "single_shot_metrics": ss_metrics,
+        "thinktwice_metrics": tt_metrics,
         "paired_comparison": {
             "total_paired": len(paired_diffs),
             "mean_confidence_delta": sum(confidence_deltas) / len(confidence_deltas) if confidence_deltas else 0,
             "mean_duration_delta_ms": sum(d["duration_delta_ms"] for d in paired_diffs) / len(paired_diffs) if paired_diffs else 0,
-            "v2_improved_count": sum(1 for d in confidence_deltas if d > 0),
-            "v2_same_count": sum(1 for d in confidence_deltas if d == 0),
-            "v2_regressed_count": sum(1 for d in confidence_deltas if d < 0),
+            "tt_improved_count": sum(1 for d in confidence_deltas if d > 0),
+            "tt_same_count": sum(1 for d in confidence_deltas if d == 0),
+            "tt_regressed_count": sum(1 for d in confidence_deltas if d < 0),
         },
         "statistical_significance": mcnemar_result,
         "confidence_ttest": ttest_result,
@@ -184,16 +184,13 @@ def _mcnemar_test(a_results: list[dict], b_results: list[dict]) -> dict:
     }
 
 
-def mcnemar_three_way(
+def mcnemar_test(
     ss_results: list[dict],
-    v1_results: list[dict],
-    v2_results: list[dict],
+    tt_results: list[dict],
 ) -> dict:
-    """Run McNemar's test for all pairwise comparisons."""
+    """Run McNemar's test: Single-Shot vs ThinkTwice."""
     return {
-        "v2_vs_ss": _mcnemar_test(ss_results, v2_results),
-        "v2_vs_v1": _mcnemar_test(v1_results, v2_results),
-        "v1_vs_ss": _mcnemar_test(ss_results, v1_results),
+        "tt_vs_ss": _mcnemar_test(ss_results, tt_results),
     }
 
 

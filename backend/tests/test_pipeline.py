@@ -1,4 +1,4 @@
-"""Integration tests for the v2 pipeline orchestrator."""
+"""Integration tests for the ThinkTwice pipeline orchestrator."""
 
 import json
 import pytest
@@ -61,10 +61,10 @@ def parse_sse_events(event_strings: list[str]) -> list[dict]:
     return events
 
 
-class TestPipelineV2:
+class TestPipeline:
     @pytest.mark.asyncio
-    async def test_v2_emits_decompose_event(self, pipeline, mock_services):
-        """Test that v2 pipeline emits decompose_complete event."""
+    async def test_emits_decompose_event(self, pipeline, mock_services):
+        """Test that pipeline emits decompose_complete event."""
         llm = mock_services[0]
         # Decompose response
         llm.generate_with_tools.return_value = {
@@ -78,7 +78,7 @@ class TestPipelineV2:
 
         request = ThinkRequest(input="What is 2+2?", mode=InputMode.QUESTION)
         events = []
-        async for event in pipeline.execute_v2(request):
+        async for event in pipeline.execute_pipeline(request):
             events.append(event)
 
         parsed = parse_sse_events(events)
@@ -87,8 +87,8 @@ class TestPipelineV2:
         assert "decompose_complete" in event_names
 
     @pytest.mark.asyncio
-    async def test_v2_emits_gate_event(self, pipeline, mock_services):
-        """Test that v2 pipeline emits gate_decision event."""
+    async def test_emits_gate_event(self, pipeline, mock_services):
+        """Test that pipeline emits gate_decision event."""
         llm = mock_services[0]
 
         # Setup sequential tool responses
@@ -121,7 +121,7 @@ class TestPipelineV2:
 
         request = ThinkRequest(input="What is 2+2?", mode=InputMode.QUESTION)
         events = []
-        async for event in pipeline.execute_v2(request):
+        async for event in pipeline.execute_pipeline(request):
             events.append(event)
 
         parsed = parse_sse_events(events)
@@ -130,34 +130,8 @@ class TestPipelineV2:
         assert "gate_decision" in event_names
 
     @pytest.mark.asyncio
-    async def test_v1_still_works(self, pipeline, mock_services):
-        """Test that v1 pipeline still functions."""
-        llm = mock_services[0]
-
-        # V1 critique response
-        llm.generate_with_tools.side_effect = [
-            # Critique
-            {"issues": [], "strengths": ["Good"], "claims_to_verify": [], "confidence": 80},
-            # Refine
-            {"content": "Refined", "confidence": 85, "changes_made": []},
-        ]
-
-        request = ThinkRequest(input="Test", mode=InputMode.QUESTION)
-        events = []
-        async for event in pipeline.execute(request, version="v1"):
-            events.append(event)
-
-        parsed = parse_sse_events(events)
-        event_names = [e["event"] for e in parsed]
-
-        assert "pipeline_complete" in event_names
-        # Should NOT have v2-specific events
-        assert "decompose_complete" not in event_names
-        assert "gate_decision" not in event_names
-
-    @pytest.mark.asyncio
-    async def test_v2_pipeline_complete_has_v2_metrics(self, pipeline, mock_services):
-        """Test that pipeline_complete event includes v2-specific metrics."""
+    async def test_pipeline_complete_has_metrics(self, pipeline, mock_services):
+        """Test that pipeline_complete event includes expected metrics."""
         llm = mock_services[0]
 
         responses = [
@@ -189,7 +163,7 @@ class TestPipelineV2:
 
         request = ThinkRequest(input="Test", mode=InputMode.QUESTION)
         events = []
-        async for event in pipeline.execute_v2(request):
+        async for event in pipeline.execute_pipeline(request):
             events.append(event)
 
         parsed = parse_sse_events(events)

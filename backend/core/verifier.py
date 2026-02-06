@@ -1,19 +1,17 @@
 """Verifier module - dual verification with web + self-verify (ReVISE-inspired).
 
-Phase 4 of the v2 pipeline. Fact-checks claims against web sources (Track A)
+Phase 4 of the ThinkTwice pipeline. Fact-checks claims against web sources (Track A)
 and through independent re-derivation (Track B), then combines verdicts.
-
-Maintains backward compatibility with v1 check_claims interface.
 """
 
 import asyncio
 import logging
-from typing import AsyncGenerator, Optional
+from typing import Optional
 
 from services.llm import LLMService
 from services.search import SearchService
-from models.schemas import VerificationResult, SearchResult
-from core.schemas import ClaimToVerify, ClaimVerdict, VerificationResultV2
+from models.schemas import SearchResult
+from core.schemas import ClaimToVerify, ClaimVerdict, VerificationResult
 from core.prompts import (
     WEB_VERIFY_SYSTEM_PROMPT,
     WEB_VERIFY_USER_PROMPT,
@@ -67,7 +65,7 @@ SELF_VERIFY_TOOLS = [
 # Fallback web verification prompt
 VERIFY_FALLBACK_PROMPT = """You are a fact-checker. Evaluate the given claim based on your knowledge.
 NOTE: No web search results are available. Evaluate based on your training data.
-Be conservative — lean toward "unclear" unless you are very confident.
+Be conservative -- lean toward "unclear" unless you are very confident.
 You MUST use the submit_verdict tool."""
 
 
@@ -108,7 +106,7 @@ def _combine_verdicts(
     if web_verdict == ClaimVerdict.UNCLEAR and self_verdict == ClaimVerdict.REFUTED:
         return ClaimVerdict.REFUTED, 45
 
-    # Direct conflict (verified vs refuted) — mark as unclear
+    # Direct conflict (verified vs refuted) -- mark as unclear
     return ClaimVerdict.UNCLEAR, 25
 
 
@@ -127,7 +125,6 @@ class Verifier:
         self.self_verify_enabled = self_verify_enabled
         self.self_verify_parallel = self_verify_parallel
         self._results: list[VerificationResult] = []
-        self._results_v2: list[VerificationResultV2] = []
 
     def _format_results(self, results: list[SearchResult]) -> str:
         """Format search results for the LLM prompt."""
@@ -212,7 +209,7 @@ class Verifier:
 
         return {"verdict": "unclear", "derivation": "Self-verification failed"}
 
-    async def _verify_single_claim(self, claim_obj: ClaimToVerify) -> VerificationResultV2:
+    async def _verify_single_claim(self, claim_obj: ClaimToVerify) -> VerificationResult:
         """Verify a single claim with dual tracks."""
         claim_text = claim_obj.claim
 
@@ -237,7 +234,7 @@ class Verifier:
         # Combine verdicts
         combined_verdict, combined_confidence = _combine_verdicts(web_verdict, self_verdict)
 
-        return VerificationResultV2(
+        return VerificationResult(
             claim_id=claim_obj.id,
             claim=claim_text,
             web_verdict=web_verdict,
@@ -252,16 +249,16 @@ class Verifier:
 
     async def dual_verify(
         self, claims: list[ClaimToVerify]
-    ) -> list[VerificationResultV2]:
+    ) -> list[VerificationResult]:
         """Verify all claims with dual web + self verification.
 
         Args:
             claims: List of ClaimToVerify objects from the critique.
 
         Returns:
-            List of VerificationResultV2 with combined verdicts.
+            List of VerificationResult with combined verdicts.
         """
-        self._results_v2 = []
+        self._results = []
 
         if not claims:
             return []
@@ -269,12 +266,10 @@ class Verifier:
         logger.info("Starting dual verification of %d claims", len(claims))
 
         # Process claims sequentially to yield results as they complete
-        # (parallel per-claim with web+self, but claims processed one at a time
-        # so we can stream results to the frontend)
         for claim_obj in claims:
             try:
                 result = await self._verify_single_claim(claim_obj)
-                self._results_v2.append(result)
+                self._results.append(result)
                 logger.info(
                     "Claim %s: web=%s, self=%s, combined=%s (conf=%d)",
                     claim_obj.id,
@@ -285,8 +280,8 @@ class Verifier:
                 )
             except Exception as e:
                 logger.error("Failed to verify claim %s: %s", claim_obj.id, e)
-                self._results_v2.append(
-                    VerificationResultV2(
+                self._results.append(
+                    VerificationResult(
                         claim_id=claim_obj.id,
                         claim=claim_obj.claim,
                         web_verdict=ClaimVerdict.UNCLEAR,
@@ -300,35 +295,8 @@ class Verifier:
                     )
                 )
 
-        return self._results_v2
-
-    def get_results_v2(self) -> list[VerificationResultV2]:
-        """Get all v2 verification results from the last run."""
-        return self._results_v2.copy()
-
-    # ---- V1 backward compatibility ----
-
-    async def check_claims(
-        self, claims: list[str]
-    ) -> AsyncGenerator[VerificationResult, None]:
-        """V1-compatible: verify each claim and yield results."""
-        self._results = []
-
-        for claim in claims:
-            web_result = await self._web_verify_claim(claim)
-
-            result = VerificationResult(
-                claim=claim,
-                verdict=web_result["verdict"],
-                source=web_result.get("source"),
-                source_title=web_result.get("source_title"),
-                explanation=web_result["explanation"],
-                web_verified=web_result["web_verified"],
-            )
-
-            self._results.append(result)
-            yield result
+        return self._results
 
     def get_results(self) -> list[VerificationResult]:
-        """Get all v1 verification results from the last run."""
+        """Get all verification results from the last run."""
         return self._results.copy()

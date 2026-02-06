@@ -1,10 +1,10 @@
-"""Tests for the v2 verifier module with dual verification."""
+"""Tests for the verifier module with dual verification."""
 
 import pytest
 from unittest.mock import AsyncMock, MagicMock
 
 from core.verifier import Verifier, _combine_verdicts
-from core.schemas import ClaimToVerify, ClaimVerdict, VerificationResultV2
+from core.schemas import ClaimToVerify, ClaimVerdict, VerificationResult
 from models.schemas import SearchResult
 
 
@@ -44,7 +44,7 @@ class TestCombineVerdicts:
         assert conf == 65
 
 
-class TestVerifierV2:
+class TestVerifier:
     @pytest.mark.asyncio
     async def test_dual_verify_returns_results(self, verifier, mock_llm, mock_search):
         """Test dual verification with web + self."""

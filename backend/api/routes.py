@@ -14,35 +14,31 @@ router = APIRouter()
 async def think(
     request: Request,
     body: ThinkRequest,
-    version: str = Query("v2", pattern="^v[12]$", description="Pipeline version (v1 or v2)"),
-    max_iterations: int | None = Query(None, ge=1, le=10, description="Max refinement iterations (v2 only)"),
-    gate_threshold: int | None = Query(None, ge=0, le=100, description="Gate confidence threshold (v2 only)"),
+    max_iterations: int | None = Query(None, ge=1, le=10, description="Max refinement iterations"),
+    gate_threshold: int | None = Query(None, ge=0, le=100, description="Gate confidence threshold"),
 ):
     """
     Main endpoint - runs the ThinkTwice pipeline and streams SSE events.
 
-    V1 Events:
+    Events:
     - step_start: A step is beginning
     - step_stream: Token streaming for draft/refine steps
     - step_complete: A step has completed
-    - verify_claim: A claim verification result
-    - pipeline_complete: Final metrics
-
-    V2 Additional Events:
     - decompose_complete: Constraint decomposition results
     - gate_decision: Gate evaluation with sub-questions and decision
     - constraint_verdict: Per-constraint evaluation (streamed)
+    - verify_claim: A claim verification result
     - self_verify_claim: Self-verification result for a claim
     - iteration_start: Refinement loop iteration beginning
     - iteration_complete: Refinement loop iteration with convergence result
     - trust_decision: Trust comparison result with scores
+    - pipeline_complete: Final metrics
     """
     pipeline = request.app.state.pipeline
 
     async def event_generator():
         async for event in pipeline.execute(
             body,
-            version=version,
             max_iterations=max_iterations,
             gate_threshold=gate_threshold,
         ):

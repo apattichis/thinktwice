@@ -1,4 +1,4 @@
-"""V2 pipeline schemas for the ThinkTwice self-correcting reasoning pipeline."""
+"""Pipeline schemas for the ThinkTwice self-correcting reasoning pipeline."""
 
 from enum import Enum
 from typing import Optional
@@ -83,7 +83,7 @@ class ClaimVerdict(str, Enum):
     UNCLEAR = "unclear"
 
 
-class VerificationResultV2(BaseModel):
+class VerificationResult(BaseModel):
     claim_id: str
     claim: str
     web_verdict: ClaimVerdict
@@ -132,7 +132,7 @@ class TrustResult(BaseModel):
     blend_notes: Optional[str] = None
 
 
-class PipelineMetricsV2(BaseModel):
+class PipelineMetrics(BaseModel):
     total_duration: float
     phase_durations: dict[str, float]
     gate_decision: str

@@ -2,7 +2,7 @@
 
 Generates comprehensive Markdown reports with embedded matplotlib charts:
 - Radar charts for multi-metric overview
-- 3-way bar charts (single-shot vs v1 vs v2)
+- 2-way bar charts (single-shot vs ThinkTwice)
 - Per-class F1 breakdown charts
 - Per-domain and per-difficulty accuracy
 - Ablation study comparison
@@ -30,13 +30,12 @@ try:
     HAS_MATPLOTLIB = True
 except ImportError:
     HAS_MATPLOTLIB = False
-    logger.warning("matplotlib not available — charts will be skipped")
+    logger.warning("matplotlib not available -- charts will be skipped")
 
 
 COLORS = {
-    "ss": "#8E8E93",       # Gray — single-shot
-    "v1": "#FF9500",       # Orange — v1
-    "v2": "#007AFF",       # Blue — v2
+    "ss": "#8E8E93",       # Gray -- single-shot
+    "tt": "#007AFF",       # Blue -- ThinkTwice
     "success": "#34C759",
     "error": "#FF3B30",
     "warning": "#FF9F0A",
@@ -94,8 +93,8 @@ def generate_radar_chart(metrics: dict, output_path: str, title: str = "Pipeline
     angles_plot = angles + [angles[0]]
 
     fig, ax = plt.subplots(figsize=(8, 8), subplot_kw=dict(polar=True))
-    ax.fill(angles_plot, values_plot, color=COLORS["v2"], alpha=0.15)
-    ax.plot(angles_plot, values_plot, color=COLORS["v2"], linewidth=2.5, marker="o", markersize=8)
+    ax.fill(angles_plot, values_plot, color=COLORS["tt"], alpha=0.15)
+    ax.plot(angles_plot, values_plot, color=COLORS["tt"], linewidth=2.5, marker="o", markersize=8)
 
     ax.set_xticks(angles)
     ax.set_xticklabels(categories, fontweight="medium")
@@ -109,8 +108,8 @@ def generate_radar_chart(metrics: dict, output_path: str, title: str = "Pipeline
     return output_path
 
 
-def generate_three_way_comparison(ss_metrics: dict, v1_metrics: dict, v2_metrics: dict, output_path: str) -> Optional[str]:
-    """Generate 3-way grouped bar chart: single-shot vs v1 vs v2."""
+def generate_two_way_comparison(ss_metrics: dict, tt_metrics: dict, output_path: str) -> Optional[str]:
+    """Generate 2-way grouped bar chart: single-shot vs ThinkTwice."""
     if not HAS_MATPLOTLIB:
         return None
     _setup_style()
@@ -121,24 +120,18 @@ def generate_three_way_comparison(ss_metrics: dict, v1_metrics: dict, v2_metrics
         ss_metrics.get("classification", {}).get("macro", {}).get("f1", 0) * 100,
         ss_metrics.get("classification", {}).get("weighted", {}).get("f1", 0) * 100,
     ]
-    v1_vals = [
-        v1_metrics.get("accuracy", {}).get("accuracy", 0) * 100,
-        v1_metrics.get("classification", {}).get("macro", {}).get("f1", 0) * 100,
-        v1_metrics.get("classification", {}).get("weighted", {}).get("f1", 0) * 100,
-    ]
-    v2_vals = [
-        v2_metrics.get("accuracy", {}).get("accuracy", 0) * 100,
-        v2_metrics.get("classification", {}).get("macro", {}).get("f1", 0) * 100,
-        v2_metrics.get("classification", {}).get("weighted", {}).get("f1", 0) * 100,
+    tt_vals = [
+        tt_metrics.get("accuracy", {}).get("accuracy", 0) * 100,
+        tt_metrics.get("classification", {}).get("macro", {}).get("f1", 0) * 100,
+        tt_metrics.get("classification", {}).get("weighted", {}).get("f1", 0) * 100,
     ]
 
     x = np.arange(len(labels))
-    width = 0.25
+    width = 0.3
     fig, ax = plt.subplots(figsize=(10, 6))
 
-    bars_ss = ax.bar(x - width, ss_vals, width, label="Single-Shot", color=COLORS["ss"], alpha=0.85, edgecolor="white")
-    bars_v1 = ax.bar(x, v1_vals, width, label="V1 (Linear)", color=COLORS["v1"], alpha=0.85, edgecolor="white")
-    bars_v2 = ax.bar(x + width, v2_vals, width, label="V2 (Research)", color=COLORS["v2"], alpha=0.85, edgecolor="white")
+    bars_ss = ax.bar(x - width/2, ss_vals, width, label="Single-Shot", color=COLORS["ss"], alpha=0.85, edgecolor="white")
+    bars_tt = ax.bar(x + width/2, tt_vals, width, label="ThinkTwice", color=COLORS["tt"], alpha=0.85, edgecolor="white")
 
     ax.set_ylabel("Score (%)")
     ax.set_title("Pipeline Comparison: Accuracy & F1", fontsize=16, fontweight="bold", color=COLORS["text"])
@@ -147,7 +140,7 @@ def generate_three_way_comparison(ss_metrics: dict, v1_metrics: dict, v2_metrics
     ax.legend(framealpha=0.9, edgecolor="#E5E5E5")
     ax.set_ylim(0, 105)
 
-    for bars in [bars_ss, bars_v1, bars_v2]:
+    for bars in [bars_ss, bars_tt]:
         for bar in bars:
             h = bar.get_height()
             ax.text(bar.get_x() + bar.get_width()/2, h + 1, f'{h:.1f}%', ha='center', va='bottom', fontsize=8)
@@ -157,8 +150,8 @@ def generate_three_way_comparison(ss_metrics: dict, v1_metrics: dict, v2_metrics
     return output_path
 
 
-def generate_per_class_f1_chart(ss_clf: dict, v1_clf: dict, v2_clf: dict, output_path: str) -> Optional[str]:
-    """Generate per-class F1 chart across all 3 baselines."""
+def generate_per_class_f1_chart(ss_clf: dict, tt_clf: dict, output_path: str) -> Optional[str]:
+    """Generate per-class F1 chart across both baselines."""
     if not HAS_MATPLOTLIB:
         return None
     _setup_style()
@@ -166,16 +159,14 @@ def generate_per_class_f1_chart(ss_clf: dict, v1_clf: dict, v2_clf: dict, output
     classes = ["true", "false", "partial"]
     labels = ["True", "False", "Partial"]
     ss_f1 = [ss_clf.get("per_class", {}).get(c, {}).get("f1", 0) * 100 for c in classes]
-    v1_f1 = [v1_clf.get("per_class", {}).get(c, {}).get("f1", 0) * 100 for c in classes]
-    v2_f1 = [v2_clf.get("per_class", {}).get(c, {}).get("f1", 0) * 100 for c in classes]
+    tt_f1 = [tt_clf.get("per_class", {}).get(c, {}).get("f1", 0) * 100 for c in classes]
 
     x = np.arange(len(labels))
-    width = 0.25
+    width = 0.3
     fig, ax = plt.subplots(figsize=(10, 6))
 
-    ax.bar(x - width, ss_f1, width, label="Single-Shot", color=COLORS["ss"], alpha=0.85, edgecolor="white")
-    ax.bar(x, v1_f1, width, label="V1 (Linear)", color=COLORS["v1"], alpha=0.85, edgecolor="white")
-    ax.bar(x + width, v2_f1, width, label="V2 (Research)", color=COLORS["v2"], alpha=0.85, edgecolor="white")
+    ax.bar(x - width/2, ss_f1, width, label="Single-Shot", color=COLORS["ss"], alpha=0.85, edgecolor="white")
+    ax.bar(x + width/2, tt_f1, width, label="ThinkTwice", color=COLORS["tt"], alpha=0.85, edgecolor="white")
 
     ax.set_ylabel("F1 Score (%)")
     ax.set_title("Per-Class F1 Score Comparison", fontsize=16, fontweight="bold", color=COLORS["text"])
@@ -256,7 +247,7 @@ def generate_domain_breakdown(results: list[dict], output_path: str) -> Optional
     counts = [d[1]["total"] for d in sorted_domains]
 
     fig, ax = plt.subplots(figsize=(10, max(4, len(names) * 0.5 + 2)))
-    bars = ax.barh(names, accuracies, color=COLORS["v2"], alpha=0.85, edgecolor="white", height=0.6)
+    bars = ax.barh(names, accuracies, color=COLORS["tt"], alpha=0.85, edgecolor="white", height=0.6)
 
     ax.set_xlabel("Accuracy (%)")
     ax.set_title("Accuracy by Domain", fontsize=16, fontweight="bold", color=COLORS["text"])
@@ -272,16 +263,16 @@ def generate_domain_breakdown(results: list[dict], output_path: str) -> Optional
     return output_path
 
 
-def generate_latency_comparison(ss_lat: dict, v1_lat: dict, v2_lat: dict, output_path: str) -> Optional[str]:
+def generate_latency_comparison(ss_lat: dict, tt_lat: dict, output_path: str) -> Optional[str]:
     """Generate latency comparison box-style chart."""
     if not HAS_MATPLOTLIB:
         return None
     _setup_style()
 
-    labels = ["Single-Shot", "V1 (Linear)", "V2 (Research)"]
-    means = [ss_lat.get("mean_ms", 0)/1000, v1_lat.get("mean_ms", 0)/1000, v2_lat.get("mean_ms", 0)/1000]
-    p95s = [ss_lat.get("p95_ms", 0)/1000, v1_lat.get("p95_ms", 0)/1000, v2_lat.get("p95_ms", 0)/1000]
-    colors = [COLORS["ss"], COLORS["v1"], COLORS["v2"]]
+    labels = ["Single-Shot", "ThinkTwice"]
+    means = [ss_lat.get("mean_ms", 0)/1000, tt_lat.get("mean_ms", 0)/1000]
+    p95s = [ss_lat.get("p95_ms", 0)/1000, tt_lat.get("p95_ms", 0)/1000]
+    colors = [COLORS["ss"], COLORS["tt"]]
 
     x = np.arange(len(labels))
     width = 0.35
@@ -318,14 +309,14 @@ def generate_latency_distribution(results: list[dict], output_path: str) -> Opti
         return None
 
     fig, ax = plt.subplots(figsize=(10, 5))
-    ax.hist(durations, bins=20, color=COLORS["v2"], alpha=0.8, edgecolor="white", linewidth=0.5)
+    ax.hist(durations, bins=20, color=COLORS["tt"], alpha=0.8, edgecolor="white", linewidth=0.5)
 
     mean_d = sum(durations) / len(durations)
     ax.axvline(mean_d, color=COLORS["error"], linestyle="--", linewidth=2, label=f"Mean: {mean_d:.1f}s")
 
     ax.set_xlabel("Duration (seconds)")
     ax.set_ylabel("Count")
-    ax.set_title("V2 Pipeline Latency Distribution", fontsize=16, fontweight="bold", color=COLORS["text"])
+    ax.set_title("ThinkTwice Pipeline Latency Distribution", fontsize=16, fontweight="bold", color=COLORS["text"])
     ax.legend(framealpha=0.9, edgecolor="#E5E5E5")
 
     plt.savefig(output_path, transparent=False, facecolor="white")
@@ -333,8 +324,8 @@ def generate_latency_distribution(results: list[dict], output_path: str) -> Opti
     return output_path
 
 
-def generate_difficulty_comparison(ss_metrics: dict, v1_metrics: dict, v2_metrics: dict, output_path: str) -> Optional[str]:
-    """Generate accuracy by difficulty level across all 3 pipelines."""
+def generate_difficulty_comparison(ss_metrics: dict, tt_metrics: dict, output_path: str) -> Optional[str]:
+    """Generate accuracy by difficulty level across both pipelines."""
     if not HAS_MATPLOTLIB:
         return None
     _setup_style()
@@ -346,16 +337,14 @@ def generate_difficulty_comparison(ss_metrics: dict, v1_metrics: dict, v2_metric
         return m.get("accuracy", {}).get("per_difficulty", {}).get(d, {}).get("accuracy", 0) * 100
 
     ss_vals = [get_diff_acc(ss_metrics, d) for d in difficulties]
-    v1_vals = [get_diff_acc(v1_metrics, d) for d in difficulties]
-    v2_vals = [get_diff_acc(v2_metrics, d) for d in difficulties]
+    tt_vals = [get_diff_acc(tt_metrics, d) for d in difficulties]
 
     x = np.arange(len(labels))
-    width = 0.25
+    width = 0.3
     fig, ax = plt.subplots(figsize=(10, 6))
 
-    bars_ss = ax.bar(x - width, ss_vals, width, label="Single-Shot", color=COLORS["ss"], alpha=0.85, edgecolor="white")
-    bars_v1 = ax.bar(x, v1_vals, width, label="V1 (Linear)", color=COLORS["v1"], alpha=0.85, edgecolor="white")
-    bars_v2 = ax.bar(x + width, v2_vals, width, label="V2 (Research)", color=COLORS["v2"], alpha=0.85, edgecolor="white")
+    bars_ss = ax.bar(x - width/2, ss_vals, width, label="Single-Shot", color=COLORS["ss"], alpha=0.85, edgecolor="white")
+    bars_tt = ax.bar(x + width/2, tt_vals, width, label="ThinkTwice", color=COLORS["tt"], alpha=0.85, edgecolor="white")
 
     ax.set_ylabel("Accuracy (%)")
     ax.set_title("Accuracy by Difficulty Level", fontsize=16, fontweight="bold", color=COLORS["text"])
@@ -364,7 +353,7 @@ def generate_difficulty_comparison(ss_metrics: dict, v1_metrics: dict, v2_metric
     ax.legend(framealpha=0.9, edgecolor="#E5E5E5")
     ax.set_ylim(0, 110)
 
-    for bars in [bars_ss, bars_v1, bars_v2]:
+    for bars in [bars_ss, bars_tt]:
         for bar in bars:
             h = bar.get_height()
             if h > 0:
@@ -435,7 +424,7 @@ def generate_ablation_chart(ablation_results: dict, output_path: str) -> Optiona
 
     for name, results in ablation_results.items():
         m = compute_all_metrics(results)
-        configs.append(name.replace("v2_", "").replace("_", "\n"))
+        configs.append(name.replace("thinktwice_", "").replace("_", "\n"))
         accuracies.append(m["accuracy"]["accuracy"] * 100)
         f1s.append(m["classification"]["macro"]["f1"] * 100)
         latencies.append(m["latency"]["mean_ms"] / 1000)
@@ -444,7 +433,7 @@ def generate_ablation_chart(ablation_results: dict, output_path: str) -> Optiona
     width = 0.35
     fig, ax1 = plt.subplots(figsize=(14, 6))
 
-    bars1 = ax1.bar(x - width/2, accuracies, width, label="Accuracy (%)", color=COLORS["v2"], alpha=0.85, edgecolor="white")
+    bars1 = ax1.bar(x - width/2, accuracies, width, label="Accuracy (%)", color=COLORS["tt"], alpha=0.85, edgecolor="white")
     bars2 = ax1.bar(x + width/2, f1s, width, label="Macro F1 (%)", color=COLORS["success"], alpha=0.85, edgecolor="white")
     ax1.set_ylabel("Score (%)")
     ax1.set_ylim(0, 110)
@@ -467,11 +456,7 @@ def generate_ablation_chart(ablation_results: dict, output_path: str) -> Optiona
 
 
 def _posthoc_gate_analysis(results: list[dict]) -> list[dict]:
-    """Retrospective gate threshold analysis.
-
-    Checks what would have happened if the gate had fast-pathed claims
-    at various confidence thresholds, by comparing draft vs refined accuracy.
-    """
+    """Retrospective gate threshold analysis."""
     from eval.metrics import _classify_output, _normalize_gold
 
     def is_correct(gold_norm, predicted):
@@ -483,7 +468,6 @@ def _posthoc_gate_analysis(results: list[dict]) -> list[dict]:
             return True
         return False
 
-    # Collect per-claim data
     claims = []
     for r in results:
         gold = r.get("gold_verdict")
@@ -493,7 +477,6 @@ def _posthoc_gate_analysis(results: list[dict]) -> list[dict]:
         gate_conf = m.get("gate_confidence", m.get("confidence_before", 0))
         duration = r.get("duration_ms", 0)
 
-        # Extract draft output from events
         draft_output = ""
         for e in r.get("events", []):
             if e.get("event") == "step_complete" and e.get("data", {}).get("step") == "draft":
@@ -514,8 +497,6 @@ def _posthoc_gate_analysis(results: list[dict]) -> list[dict]:
         return []
 
     total = len(claims)
-    mean_duration = sum(c["duration_ms"] for c in claims) / total
-    # Estimate draft-only duration as ~15% of full pipeline (1 API call vs ~15)
     draft_duration_pct = 0.15
 
     analysis = []
@@ -524,8 +505,6 @@ def _posthoc_gate_analysis(results: list[dict]) -> list[dict]:
         n_skip = len(would_skip)
         n_correct = sum(1 for c in would_skip if c["draft_correct"])
         draft_acc = n_correct / n_skip if n_skip > 0 else 0
-
-        # Latency saving: fast-pathed claims use ~15% of full pipeline time
         saving_pct = (n_skip / total) * (1 - draft_duration_pct) * 100 if total > 0 else 0
 
         analysis.append({
@@ -564,10 +543,10 @@ def generate_report(
     lines.append(f"**Dataset:** {dataset_name}  ")
     lines.append(f"**Generated:** {timestamp}  ")
     lines.append(f"**Total Samples:** {len(results)}  ")
-    lines.append(f"**Pipeline Version:** V2 (Research-inspired self-correcting pipeline)  ")
+    lines.append(f"**Pipeline:** ThinkTwice (self-correcting pipeline)  ")
     lines.append("")
 
-    # ─── Executive Summary ───
+    # --- Executive Summary ---
     section += 1
     lines.append(f"## {section}. Executive Summary")
     lines.append("")
@@ -592,26 +571,25 @@ def generate_report(
     lines.append(f"| **P95 Latency** | {lat['p95_ms']/1000:.1f}s |")
     lines.append("")
 
-    radar_path = generate_radar_chart(metrics, str(charts_dir / "radar.png"), f"{dataset_name} — V2 Pipeline Metrics")
+    radar_path = generate_radar_chart(metrics, str(charts_dir / "radar.png"), f"{dataset_name} -- ThinkTwice Pipeline Metrics")
     if radar_path:
         lines.append("![Pipeline Metrics Radar](charts/radar.png)")
         lines.append("")
 
-    # ─── Methodology ───
+    # --- Methodology ---
     section += 1
     lines.append(f"## {section}. Methodology")
     lines.append("")
     lines.append("### Experimental Setup")
     lines.append("")
-    lines.append("Three pipeline configurations are compared:")
+    lines.append("Two pipeline configurations are compared:")
     lines.append("")
     lines.append("| Pipeline | Description | Steps |")
     lines.append("|----------|-------------|-------|")
     lines.append("| **Single-Shot** | Raw Claude API call with no self-correction (control group) | 1 |")
-    lines.append("| **V1 (Linear)** | 4-step linear pipeline: Draft, Critique, Verify, Refine | 4 |")
-    lines.append("| **V2 (Research)** | Research-inspired pipeline with constraint decomposition, gating, iterative convergence, and trust ranking | 5-9 |")
+    lines.append("| **ThinkTwice** | Self-correcting pipeline with constraint decomposition, gating, iterative convergence, and trust ranking | 5-9 |")
     lines.append("")
-    lines.append("All pipelines use the same underlying language model (Claude) and have access to the same web search and source verification tools.")
+    lines.append("Both pipelines use the same underlying language model (Claude) and have access to the same web search and source verification tools.")
     lines.append("")
 
     # Dataset description
@@ -646,7 +624,7 @@ def generate_report(
     lines.append("Classification is performed by a multi-region signal detection classifier that analyzes the pipeline's natural language output across opener, closer, verdict section, and full-text regions.")
     lines.append("")
 
-    # ─── Per-Class Classification ───
+    # --- Per-Class Classification ---
     section += 1
     lines.append(f"## {section}. Per-Class Classification Metrics")
     lines.append("")
@@ -659,75 +637,70 @@ def generate_report(
     lines.append(f"| **Weighted Avg** | {clf['weighted']['precision']:.3f} | {clf['weighted']['recall']:.3f} | {clf['weighted']['f1']:.3f} | {acc['total']} |")
     lines.append("")
 
-    cm_chart = generate_confusion_matrix(results, str(charts_dir / "confusion_matrix.png"), "V2 Confusion Matrix")
+    cm_chart = generate_confusion_matrix(results, str(charts_dir / "confusion_matrix.png"), "ThinkTwice Confusion Matrix")
     if cm_chart:
         lines.append("![Confusion Matrix](charts/confusion_matrix.png)")
         lines.append("")
 
-    # ─── 3-Way Baseline Comparison ───
+    # --- Baseline Comparison ---
     if comparison and single_shot_metrics:
         ssm = single_shot_metrics
-        v1m = comparison["v1_metrics"]
-        v2m = comparison["v2_metrics"]
+        ttm = comparison["thinktwice_metrics"]
 
         section += 1
         lines.append(f"## {section}. Baseline Comparison")
         lines.append("")
-        lines.append("| Metric | Single-Shot | V1 (Linear) | V2 (Research) |")
-        lines.append("|--------|-------------|-------------|---------------|")
-        lines.append(f"| **Accuracy** | {ssm['accuracy']['accuracy']:.1%} | {v1m['accuracy']['accuracy']:.1%} | {v2m['accuracy']['accuracy']:.1%} |")
-        lines.append(f"| **Macro F1** | {ssm['classification']['macro']['f1']:.3f} | {v1m['classification']['macro']['f1']:.3f} | {v2m['classification']['macro']['f1']:.3f} |")
-        lines.append(f"| **Weighted F1** | {ssm['classification']['weighted']['f1']:.3f} | {v1m['classification']['weighted']['f1']:.3f} | {v2m['classification']['weighted']['f1']:.3f} |")
-        lines.append(f"| **Mean Latency** | {ssm['latency']['mean_ms']/1000:.1f}s | {v1m['latency']['mean_ms']/1000:.1f}s | {v2m['latency']['mean_ms']/1000:.1f}s |")
-        lines.append(f"| **P95 Latency** | {ssm['latency']['p95_ms']/1000:.1f}s | {v1m['latency']['p95_ms']/1000:.1f}s | {v2m['latency']['p95_ms']/1000:.1f}s |")
+        lines.append("| Metric | Single-Shot | ThinkTwice |")
+        lines.append("|--------|-------------|------------|")
+        lines.append(f"| **Accuracy** | {ssm['accuracy']['accuracy']:.1%} | {ttm['accuracy']['accuracy']:.1%} |")
+        lines.append(f"| **Macro F1** | {ssm['classification']['macro']['f1']:.3f} | {ttm['classification']['macro']['f1']:.3f} |")
+        lines.append(f"| **Weighted F1** | {ssm['classification']['weighted']['f1']:.3f} | {ttm['classification']['weighted']['f1']:.3f} |")
+        lines.append(f"| **Mean Latency** | {ssm['latency']['mean_ms']/1000:.1f}s | {ttm['latency']['mean_ms']/1000:.1f}s |")
+        lines.append(f"| **P95 Latency** | {ssm['latency']['p95_ms']/1000:.1f}s | {ttm['latency']['p95_ms']/1000:.1f}s |")
         lines.append("")
 
         # Per-class F1 comparison
         lines.append("**Per-Class F1 by Pipeline:**")
         lines.append("")
-        lines.append("| Class | Single-Shot | V1 | V2 |")
-        lines.append("|-------|-------------|-----|-----|")
+        lines.append("| Class | Single-Shot | ThinkTwice |")
+        lines.append("|-------|-------------|------------|")
         for cls_name in ["true", "false", "partial"]:
             ss_f1 = ssm['classification']['per_class'].get(cls_name, {}).get('f1', 0)
-            v1_f1 = v1m['classification']['per_class'].get(cls_name, {}).get('f1', 0)
-            v2_f1 = v2m['classification']['per_class'].get(cls_name, {}).get('f1', 0)
-            lines.append(f"| **{cls_name.title()}** | {ss_f1:.3f} | {v1_f1:.3f} | {v2_f1:.3f} |")
+            tt_f1 = ttm['classification']['per_class'].get(cls_name, {}).get('f1', 0)
+            lines.append(f"| **{cls_name.title()}** | {ss_f1:.3f} | {tt_f1:.3f} |")
         lines.append("")
 
         # Improvement summary
         ss_acc = ssm['accuracy']['accuracy']
-        v1_acc = v1m['accuracy']['accuracy']
-        v2_acc = v2m['accuracy']['accuracy']
+        tt_acc = ttm['accuracy']['accuracy']
         lines.append("**Key Findings:**")
         if ss_acc > 0:
-            lines.append(f"- V2 accuracy vs single-shot: {v2_acc - ss_acc:+.1%} ({((v2_acc - ss_acc) / ss_acc) * 100:+.1f}% relative)")
-        if v1_acc > 0:
-            lines.append(f"- V2 accuracy vs V1: {v2_acc - v1_acc:+.1%} ({((v2_acc - v1_acc) / v1_acc) * 100:+.1f}% relative)")
-        lines.append(f"- V2 latency overhead vs single-shot: {(v2m['latency']['mean_ms'] - ssm['latency']['mean_ms'])/1000:+.1f}s")
+            lines.append(f"- ThinkTwice accuracy vs single-shot: {tt_acc - ss_acc:+.1%} ({((tt_acc - ss_acc) / ss_acc) * 100:+.1f}% relative)")
+        lines.append(f"- ThinkTwice latency overhead vs single-shot: {(ttm['latency']['mean_ms'] - ssm['latency']['mean_ms'])/1000:+.1f}s")
         lines.append("")
 
         # Charts
-        comp_chart = generate_three_way_comparison(ssm, v1m, v2m, str(charts_dir / "comparison.png"))
+        comp_chart = generate_two_way_comparison(ssm, ttm, str(charts_dir / "comparison.png"))
         if comp_chart:
             lines.append("![Baseline Comparison](charts/comparison.png)")
             lines.append("")
 
-        f1_chart = generate_per_class_f1_chart(ssm["classification"], v1m["classification"], v2m["classification"], str(charts_dir / "per_class_f1.png"))
+        f1_chart = generate_per_class_f1_chart(ssm["classification"], ttm["classification"], str(charts_dir / "per_class_f1.png"))
         if f1_chart:
             lines.append("![Per-Class F1](charts/per_class_f1.png)")
             lines.append("")
 
-        lat_chart = generate_latency_comparison(ssm["latency"], v1m["latency"], v2m["latency"], str(charts_dir / "latency_comparison.png"))
+        lat_chart = generate_latency_comparison(ssm["latency"], ttm["latency"], str(charts_dir / "latency_comparison.png"))
         if lat_chart:
             lines.append("![Latency Comparison](charts/latency_comparison.png)")
             lines.append("")
 
-        diff_comp_chart = generate_difficulty_comparison(ssm, v1m, v2m, str(charts_dir / "difficulty_comparison.png"))
+        diff_comp_chart = generate_difficulty_comparison(ssm, ttm, str(charts_dir / "difficulty_comparison.png"))
         if diff_comp_chart:
             lines.append("![Difficulty Comparison](charts/difficulty_comparison.png)")
             lines.append("")
 
-        # Statistical significance — McNemar's test (standard for classifier comparison)
+        # Statistical significance
         sig = comparison.get("statistical_significance")
         if sig and sig.get("test") == "mcnemar":
             lines.append("### Statistical Significance (McNemar's Test)")
@@ -741,37 +714,9 @@ def generate_report(
                 lines.append(f"- **p-value:** {sig.get('p_value', 1):.6f}")
             lines.append(f"- **Paired samples:** {sig.get('n', 0)}")
             lines.append(f"- **Both correct:** {sig.get('both_correct', 0)}")
-            lines.append(f"- **V1 only correct:** {sig.get('a_only_correct', 0)}")
-            lines.append(f"- **V2 only correct:** {sig.get('b_only_correct', 0)}")
+            lines.append(f"- **SS only correct:** {sig.get('a_only_correct', 0)}")
+            lines.append(f"- **TT only correct:** {sig.get('b_only_correct', 0)}")
             lines.append(f"- **Both wrong:** {sig.get('both_wrong', 0)}")
-            lines.append("")
-        elif sig:
-            # Fallback for old-format t-test results
-            lines.append("### Statistical Significance (Paired t-test)")
-            lines.append("")
-            lines.append(f"- **Significant:** {'Yes' if sig.get('significant') else 'No'} (p < 0.05)")
-            lines.append(f"- **t-statistic:** {sig.get('t_stat', 0):.4f}")
-            lines.append(f"- **p-value:** {sig.get('p_approx', 1):.6f}")
-            lines.append(f"- **Paired samples:** {sig.get('n', 0)}")
-            lines.append("")
-
-        # 3-way McNemar comparison (if available)
-        mcnemar_3way = comparison.get("mcnemar_three_way")
-        if mcnemar_3way:
-            lines.append("### Pairwise Statistical Significance (McNemar's Test)")
-            lines.append("")
-            lines.append("| Comparison | Chi-squared | p-value | Significant |")
-            lines.append("|-----------|------------|---------|-------------|")
-            for label, key in [("V2 vs Single-Shot", "v2_vs_ss"), ("V2 vs V1", "v2_vs_v1"), ("V1 vs Single-Shot", "v1_vs_ss")]:
-                m = mcnemar_3way.get(key, {})
-                chi2 = m.get("chi2", "—")
-                p = m.get("p_value", "—")
-                sig_yn = "Yes" if m.get("significant") else "No"
-                if isinstance(chi2, (int, float)):
-                    lines.append(f"| {label} | {chi2:.4f} | {p:.6f} | {sig_yn} |")
-                else:
-                    reason = m.get("reason", "N/A")
-                    lines.append(f"| {label} | — | — | {sig_yn} ({reason}) |")
             lines.append("")
 
         # Paired analysis
@@ -779,14 +724,14 @@ def generate_report(
         if paired:
             lines.append("### Paired Sample Analysis")
             lines.append("")
-            lines.append(f"- V2 improved confidence: **{paired.get('v2_improved_count', 0)}** samples")
-            lines.append(f"- No change: **{paired.get('v2_same_count', 0)}** samples")
-            lines.append(f"- V2 regressed: **{paired.get('v2_regressed_count', 0)}** samples")
+            lines.append(f"- ThinkTwice improved confidence: **{paired.get('tt_improved_count', 0)}** samples")
+            lines.append(f"- No change: **{paired.get('tt_same_count', 0)}** samples")
+            lines.append(f"- ThinkTwice regressed: **{paired.get('tt_regressed_count', 0)}** samples")
             lines.append(f"- Mean confidence delta: **{paired.get('mean_confidence_delta', 0):+.1f}**")
             lines.append(f"- Mean latency delta: **{paired.get('mean_duration_delta_ms', 0)/1000:+.1f}s**")
             lines.append("")
 
-    # ─── Per-Domain Breakdown ───
+    # --- Per-Domain Breakdown ---
     section += 1
     lines.append(f"## {section}. Per-Domain Breakdown")
     lines.append("")
@@ -803,7 +748,7 @@ def generate_report(
             lines.append(f"| {domain.replace('_', ' ').title()} | {data['accuracy']:.1%} | {data['correct']} | {data['total']} |")
         lines.append("")
 
-    # ─── Per-Difficulty Breakdown ───
+    # --- Per-Difficulty Breakdown ---
     per_diff = acc.get("per_difficulty", {})
     if per_diff:
         section += 1
@@ -823,9 +768,9 @@ def generate_report(
                 lines.append(f"| {diff.title()} | {d['accuracy']:.1%} | {d['correct']} | {d['total']} |")
         lines.append("")
 
-    # ─── V2 Pipeline-Specific Metrics ───
+    # --- Pipeline Analysis ---
     section += 1
-    lines.append(f"## {section}. V2 Pipeline Analysis")
+    lines.append(f"## {section}. ThinkTwice Pipeline Analysis")
     lines.append("")
 
     lines.append("### Gate Mechanism")
@@ -859,7 +804,6 @@ def generate_report(
                 lines.append(f"| >= {t} | {n_skip}/{total} ({pct:.0f}%) | {draft_acc:.0f}% | ~{saving:.0f}% |")
             lines.append("")
 
-            # Find optimal threshold
             optimal = None
             for entry in gate_analysis:
                 if entry["draft_accuracy"] >= 1.0 and entry["would_skip"] > 0:
@@ -867,7 +811,7 @@ def generate_report(
                     break
             if optimal:
                 lines.append(
-                    f"**Recommended threshold: confidence >= {optimal['threshold']}** — "
+                    f"**Recommended threshold: confidence >= {optimal['threshold']}** -- "
                     f"fast-paths {optimal['would_skip']}/{optimal['total']} claims "
                     f"({optimal['would_skip']/optimal['total']*100:.0f}%) with 100% draft accuracy, "
                     f"reducing mean latency by ~{optimal['latency_saving_pct']:.0f}%."
@@ -900,7 +844,7 @@ def generate_report(
     lines.append(f"- Samples: {ref.get('total_samples', 0)}")
     lines.append("")
 
-    # ─── Latency ───
+    # --- Latency ---
     section += 1
     lines.append(f"## {section}. Latency Analysis")
     lines.append("")
@@ -919,12 +863,12 @@ def generate_report(
     lines.append(f"| Total samples | {lat.get('total_samples', 0)} |")
     lines.append("")
 
-    # ─── Ablation Study ───
+    # --- Ablation Study ---
     if ablation_results:
         section += 1
         lines.append(f"## {section}. Ablation Study")
         lines.append("")
-        lines.append("Each configuration isolates one V2 component to measure its contribution.")
+        lines.append("Each configuration isolates one ThinkTwice component to measure its contribution.")
         lines.append("")
         lines.append("| Configuration | Accuracy | Macro F1 | Mean Latency | Iterations |")
         lines.append("|---------------|----------|----------|-------------|------------|")
@@ -939,14 +883,13 @@ def generate_report(
             lines.append("![Ablation Study](charts/ablation.png)")
             lines.append("")
 
-    # ─── Error Analysis ───
+    # --- Error Analysis ---
     mismatches = acc.get("mismatches", [])
     if mismatches:
         section += 1
         lines.append(f"## {section}. Error Analysis")
         lines.append("")
 
-        # Categorize errors
         error_cats = {
             "true_as_false": 0, "true_as_partial": 0, "true_as_unknown": 0,
             "false_as_true": 0, "false_as_partial": 0, "false_as_unknown": 0,
@@ -957,7 +900,6 @@ def generate_report(
             if key in error_cats:
                 error_cats[key] += 1
 
-        # Show error distribution
         active_cats = {k: v for k, v in error_cats.items() if v > 0}
         if active_cats:
             lines.append("### Error Distribution")
@@ -977,92 +919,63 @@ def generate_report(
             lines.append(f"| {m['input'][:60]}... | {m['gold']} | {m['predicted']} |")
         lines.append("")
 
-    # ─── Discussion ───
+    # --- Discussion ---
     section += 1
     lines.append(f"## {section}. Discussion")
     lines.append("")
 
     if comparison and single_shot_metrics:
         ssm = single_shot_metrics
-        v1m = comparison["v1_metrics"]
-        v2m = comparison["v2_metrics"]
+        ttm = comparison["thinktwice_metrics"]
         ss_acc = ssm["accuracy"]["accuracy"]
-        v1_acc = v1m["accuracy"]["accuracy"]
-        v2_acc = v2m["accuracy"]["accuracy"]
+        tt_acc = ttm["accuracy"]["accuracy"]
         ss_f1 = ssm["classification"]["macro"]["f1"]
-        v1_f1 = v1m["classification"]["macro"]["f1"]
-        v2_f1 = v2m["classification"]["macro"]["f1"]
+        tt_f1 = ttm["classification"]["macro"]["f1"]
 
         lines.append("### Pipeline Value-Add")
         lines.append("")
-        if v2_acc > ss_acc:
+        if tt_acc > ss_acc:
             lines.append(
-                f"The V2 self-correcting pipeline achieves {v2_acc:.1%} accuracy, "
-                f"a **{(v2_acc - ss_acc)*100:+.1f} percentage point** improvement over "
+                f"The ThinkTwice self-correcting pipeline achieves {tt_acc:.1%} accuracy, "
+                f"a **{(tt_acc - ss_acc)*100:+.1f} percentage point** improvement over "
                 f"the single-shot baseline ({ss_acc:.1%}). This demonstrates that the "
                 f"multi-step decompose-critique-verify-refine loop adds measurable value "
                 f"beyond the raw capability of the underlying language model."
             )
-        elif abs(v2_acc - ss_acc) < 0.02:  # Within 2pp
-            f1_delta = v2_f1 - ss_f1
+        elif abs(tt_acc - ss_acc) < 0.02:
+            f1_delta = tt_f1 - ss_f1
             if f1_delta > 0.05:
                 lines.append(
-                    f"The V2 pipeline matches the single-shot baseline at {v2_acc:.1%} accuracy "
-                    f"while achieving significantly higher macro F1 ({v2_f1:.3f} vs {ss_f1:.3f}, "
+                    f"The ThinkTwice pipeline matches the single-shot baseline at {tt_acc:.1%} accuracy "
+                    f"while achieving significantly higher macro F1 ({tt_f1:.3f} vs {ss_f1:.3f}, "
                     f"+{f1_delta:.3f}). This demonstrates that the multi-step pipeline produces "
-                    f"more balanced classification across claim types — particularly for nuanced "
-                    f"partial claims — along with structured verification evidence and "
+                    f"more balanced classification across claim types -- particularly for nuanced "
+                    f"partial claims -- along with structured verification evidence and "
                     f"source-backed reasoning."
                 )
             else:
                 lines.append(
-                    f"The V2 pipeline matches the single-shot baseline at {v2_acc:.1%} accuracy. "
+                    f"The ThinkTwice pipeline matches the single-shot baseline at {tt_acc:.1%} accuracy. "
                     f"While accuracy is comparable, the pipeline provides structured verification "
                     f"evidence and source-backed reasoning that the single-shot approach lacks."
                 )
         else:
             lines.append(
-                f"The V2 pipeline ({v2_acc:.1%}) underperforms the single-shot baseline "
+                f"The ThinkTwice pipeline ({tt_acc:.1%}) underperforms the single-shot baseline "
                 f"({ss_acc:.1%}) on raw accuracy. This suggests the self-correction loop "
                 f"may introduce over-qualification of true claims or other systematic biases "
                 f"that require further tuning."
             )
         lines.append("")
 
-        # V2 vs V1 discussion
-        lines.append("### V2 vs V1 Architecture")
-        lines.append("")
-        if v2_acc > v1_acc:
-            lines.append(
-                f"V2 outperforms V1 by **{(v2_acc - v1_acc)*100:+.1f} percentage points** "
-                f"in accuracy ({v2_acc:.1%} vs {v1_acc:.1%}), with macro F1 improving from "
-                f"{v1_f1:.3f} to {v2_f1:.3f}. The research-inspired additions — constraint "
-                f"decomposition, gating, iterative convergence, and trust ranking — contribute "
-                f"to more reliable fact-checking."
-            )
-        elif v2_acc == v1_acc:
-            lines.append(
-                f"V2 and V1 achieve the same accuracy ({v2_acc:.1%}), but V2's macro F1 "
-                f"({v2_f1:.3f} vs {v1_f1:.3f}) and structured pipeline provide better "
-                f"balanced performance across claim types."
-            )
-        else:
-            lines.append(
-                f"V1 ({v1_acc:.1%}) outperforms V2 ({v2_acc:.1%}) on raw accuracy. "
-                f"The added complexity of V2's gating and iteration may not benefit "
-                f"this particular dataset distribution. Further tuning of gate thresholds "
-                f"and convergence criteria is warranted."
-            )
-        lines.append("")
-
         # Latency trade-off
-        v2_lat_mean = v2m["latency"]["mean_ms"] / 1000
+        tt_lat_mean = ttm["latency"]["mean_ms"] / 1000
         ss_lat_mean = ssm["latency"]["mean_ms"] / 1000
         lines.append("### Accuracy-Latency Trade-off")
         lines.append("")
         lines.append(
-            f"The V2 pipeline's mean latency of {v2_lat_mean:.1f}s represents a "
-            f"{v2_lat_mean / ss_lat_mean:.1f}x overhead compared to single-shot "
+            f"The ThinkTwice pipeline's mean latency of {tt_lat_mean:.1f}s represents a "
+            f"{tt_lat_mean / ss_lat_mean:.1f}x overhead compared to single-shot "
             f"({ss_lat_mean:.1f}s). This cost is justified when fact-checking accuracy "
             f"is critical, as the pipeline provides source-verified evidence and "
             f"structured reasoning."
@@ -1071,7 +984,7 @@ def generate_report(
             lines.append(
                 f"The gate mechanism was designed to fast-path high-confidence claims, "
                 f"but the current threshold configuration (confidence >= 85, 100% constraint "
-                f"pass rate) proved too strict — no claims met the criteria. Lowering these "
+                f"pass rate) proved too strict -- no claims met the criteria. Lowering these "
                 f"thresholds would enable latency savings on clear-cut claims without "
                 f"re-running the full pipeline."
             )
@@ -1081,34 +994,34 @@ def generate_report(
         lines.append("### Per-Class Analysis")
         lines.append("")
         for cls_name in ["true", "false", "partial"]:
-            v2_cls_f1 = v2m["classification"]["per_class"].get(cls_name, {}).get("f1", 0)
+            tt_cls_f1 = ttm["classification"]["per_class"].get(cls_name, {}).get("f1", 0)
             ss_cls_f1 = ssm["classification"]["per_class"].get(cls_name, {}).get("f1", 0)
-            delta = v2_cls_f1 - ss_cls_f1
+            delta = tt_cls_f1 - ss_cls_f1
             if abs(delta) > 0.05:
                 direction = "improvement" if delta > 0 else "decline"
                 lines.append(
-                    f"- **{cls_name.title()}** class F1: {v2_cls_f1:.3f} vs {ss_cls_f1:.3f} "
-                    f"(single-shot) — {abs(delta)*100:.1f}pp {direction}"
+                    f"- **{cls_name.title()}** class F1: {tt_cls_f1:.3f} vs {ss_cls_f1:.3f} "
+                    f"(single-shot) -- {abs(delta)*100:.1f}pp {direction}"
                 )
             else:
                 lines.append(
-                    f"- **{cls_name.title()}** class F1: {v2_cls_f1:.3f} vs {ss_cls_f1:.3f} "
-                    f"(single-shot) — comparable performance"
+                    f"- **{cls_name.title()}** class F1: {tt_cls_f1:.3f} vs {ss_cls_f1:.3f} "
+                    f"(single-shot) -- comparable performance"
                 )
         lines.append("")
 
         # Difficulty insights
-        v2_per_diff = v2m["accuracy"].get("per_difficulty", {})
+        tt_per_diff = ttm["accuracy"].get("per_difficulty", {})
         ss_per_diff = ssm["accuracy"].get("per_difficulty", {})
-        if v2_per_diff and ss_per_diff:
-            hard_v2 = v2_per_diff.get("hard", {}).get("accuracy", 0)
+        if tt_per_diff and ss_per_diff:
+            hard_tt = tt_per_diff.get("hard", {}).get("accuracy", 0)
             hard_ss = ss_per_diff.get("hard", {}).get("accuracy", 0)
-            if hard_v2 != hard_ss:
+            if hard_tt != hard_ss:
                 lines.append("### Difficulty Scaling")
                 lines.append("")
                 lines.append(
-                    f"On hard claims, V2 achieves {hard_v2:.1%} accuracy versus "
-                    f"{hard_ss:.1%} for single-shot — {'demonstrating that the pipeline adds the most value on challenging cases' if hard_v2 > hard_ss else 'indicating the pipeline may over-correct on nuanced claims'}."
+                    f"On hard claims, ThinkTwice achieves {hard_tt:.1%} accuracy versus "
+                    f"{hard_ss:.1%} for single-shot -- {'demonstrating that the pipeline adds the most value on challenging cases' if hard_tt > hard_ss else 'indicating the pipeline may over-correct on nuanced claims'}."
                 )
                 lines.append("")
     else:
@@ -1118,9 +1031,9 @@ def generate_report(
         )
         lines.append("")
 
-    # ─── V2 component insights (if V2 metrics are available) ───
+    # --- Component insights ---
     if gate["total_runs"] > 0:
-        lines.append("### V2 Component Insights")
+        lines.append("### ThinkTwice Component Insights")
         lines.append("")
         if gate["fast_path_rate"] > 0:
             lines.append(
@@ -1130,7 +1043,7 @@ def generate_report(
         else:
             lines.append(
                 f"- **Gate mechanism** did not fast-path any claims. The gate requires "
-                f"confidence >= 85 and 100% constraint satisfaction — thresholds that no "
+                f"confidence >= 85 and 100% constraint satisfaction -- thresholds that no "
                 f"draft response met. This is a tuning opportunity: relaxing these thresholds "
                 f"(e.g., confidence >= 70, pass rate >= 80%) would enable fast-path savings "
                 f"on straightforward claims."
@@ -1180,47 +1093,47 @@ def generate_report(
     )
     lines.append("")
 
-    # ─── Conclusions ───
+    # --- Conclusions ---
     section += 1
     lines.append(f"## {section}. Conclusions")
     lines.append("")
 
     if comparison and single_shot_metrics:
         ssm = single_shot_metrics
-        v2m = comparison["v2_metrics"]
-        v2_acc = v2m["accuracy"]["accuracy"]
+        ttm = comparison["thinktwice_metrics"]
+        tt_acc = ttm["accuracy"]["accuracy"]
         ss_acc = ssm["accuracy"]["accuracy"]
-        v2_f1 = v2m["classification"]["macro"]["f1"]
+        tt_f1 = ttm["classification"]["macro"]["f1"]
 
         lines.append(
-            f"1. **The ThinkTwice V2 pipeline achieves {v2_acc:.1%} accuracy** "
-            f"(macro F1: {v2_f1:.3f}) on the {dataset_name} benchmark with {len(results)} claims "
+            f"1. **The ThinkTwice pipeline achieves {tt_acc:.1%} accuracy** "
+            f"(macro F1: {tt_f1:.3f}) on the {dataset_name} benchmark with {len(results)} claims "
             f"spanning {len(acc.get('per_domain', {}))} domains and 3 difficulty levels."
         )
         ss_f1 = ssm["classification"]["macro"]["f1"]
-        if v2_acc > ss_acc:
+        if tt_acc > ss_acc:
             lines.append(
                 f"2. **Self-correction adds measurable value:** The pipeline improves "
-                f"accuracy by {(v2_acc - ss_acc)*100:.1f} percentage points over the "
+                f"accuracy by {(tt_acc - ss_acc)*100:.1f} percentage points over the "
                 f"single-shot baseline, validating the decompose-critique-verify-refine approach."
             )
-        elif v2_f1 > ss_f1 + 0.05:
+        elif tt_f1 > ss_f1 + 0.05:
             lines.append(
                 f"2. **Balanced classification is the key gain:** While accuracy matches "
-                f"single-shot ({v2_acc:.1%}), V2's macro F1 ({v2_f1:.3f} vs {ss_f1:.3f}) "
+                f"single-shot ({tt_acc:.1%}), ThinkTwice's macro F1 ({tt_f1:.3f} vs {ss_f1:.3f}) "
                 f"demonstrates significantly more balanced performance across claim types, "
                 f"particularly for nuanced partial claims."
             )
         else:
             lines.append(
                 f"2. **Self-correction trade-offs:** While the pipeline adds structured "
-                f"verification and evidence, raw accuracy ({v2_acc:.1%}) is comparable to "
+                f"verification and evidence, raw accuracy ({tt_acc:.1%}) is comparable to "
                 f"single-shot ({ss_acc:.1%}). The pipeline's value lies in source-verified "
                 f"evidence and structured reasoning."
             )
         lines.append(
-            f"3. **Latency is the primary cost:** V2's mean latency of "
-            f"{v2m['latency']['mean_ms']/1000:.1f}s reflects the thorough multi-step "
+            f"3. **Latency is the primary cost:** ThinkTwice's mean latency of "
+            f"{ttm['latency']['mean_ms']/1000:.1f}s reflects the thorough multi-step "
             f"verification process."
         )
         if gate["total_runs"] > 0:
@@ -1245,8 +1158,8 @@ def generate_report(
             )
     else:
         lines.append(
-            f"The V2 pipeline achieves {acc['accuracy']:.1%} accuracy on {len(results)} samples. "
-            f"Run the full 3-way comparison (`--pipeline all`) for comprehensive evaluation."
+            f"The ThinkTwice pipeline achieves {acc['accuracy']:.1%} accuracy on {len(results)} samples. "
+            f"Run the full comparison (`--pipeline all`) for comprehensive evaluation."
         )
 
     lines.append("")

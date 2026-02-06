@@ -30,7 +30,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     )
     scraper_service = ScraperService()
 
-    # Initialize pipeline with v2 settings
+    # Initialize pipeline
     pipeline = ThinkTwicePipeline(
         llm=llm_service,
         search=search_service,

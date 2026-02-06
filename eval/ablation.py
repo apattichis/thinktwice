@@ -1,4 +1,4 @@
-"""Ablation study runner for the ThinkTwice v2 pipeline.
+"""Ablation study runner for the ThinkTwice pipeline.
 
 Runs the pipeline with different components disabled to measure their
 individual contributions. Supports parallel ablation runs.
@@ -22,39 +22,34 @@ ABLATION_CONFIGS = {
         "pipeline_version": "single_shot",
         "overrides": {},
     },
-    "v1_baseline": {
-        "description": "V1 pipeline (4-step linear)",
-        "pipeline_version": "v1",
+    "thinktwice_full": {
+        "description": "ThinkTwice full pipeline (all components enabled)",
+        "pipeline_version": "thinktwice",
         "overrides": {},
     },
-    "v2_full": {
-        "description": "V2 full pipeline (all components enabled)",
-        "pipeline_version": "v2",
-        "overrides": {},
-    },
-    "v2_no_gate": {
-        "description": "V2 without gate (always refine)",
-        "pipeline_version": "v2",
+    "thinktwice_no_gate": {
+        "description": "ThinkTwice without gate (always refine)",
+        "pipeline_version": "thinktwice",
         "overrides": {"gate_threshold": 100},  # Impossible threshold = always refine
     },
-    "v2_no_self_verify": {
-        "description": "V2 without self-verification track",
-        "pipeline_version": "v2",
+    "thinktwice_no_self_verify": {
+        "description": "ThinkTwice without self-verification track",
+        "pipeline_version": "thinktwice",
         "overrides": {"self_verify_enabled": False},
     },
-    "v2_no_loop": {
-        "description": "V2 with single iteration (no convergence loop)",
-        "pipeline_version": "v2",
+    "thinktwice_no_loop": {
+        "description": "ThinkTwice with single iteration (no convergence loop)",
+        "pipeline_version": "thinktwice",
         "overrides": {"max_iterations": 1},
     },
-    "v2_no_trust": {
-        "description": "V2 without trust comparison (always use refined)",
-        "pipeline_version": "v2",
+    "thinktwice_no_trust": {
+        "description": "ThinkTwice without trust comparison (always use refined)",
+        "pipeline_version": "thinktwice",
         "overrides": {"trust_blend_enabled": False},
     },
-    "v2_gate_only": {
-        "description": "V2 with aggressive gate (high fast-path rate)",
-        "pipeline_version": "v2",
+    "thinktwice_gate_only": {
+        "description": "ThinkTwice with aggressive gate (high fast-path rate)",
+        "pipeline_version": "thinktwice",
         "overrides": {"gate_threshold": 40, "gate_min_pass_rate": 0.5},
     },
 }
@@ -88,7 +83,7 @@ async def run_ablation(
             logger.warning("Unknown ablation config: %s", config_name)
             continue
 
-        logger.info("Running ablation: %s — %s", config_name, config["description"])
+        logger.info("Running ablation: %s -- %s", config_name, config["description"])
 
         runner = EvalRunner(
             pipeline_version=config["pipeline_version"],

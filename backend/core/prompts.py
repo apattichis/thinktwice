@@ -1,4 +1,4 @@
-"""Centralized system prompts for the ThinkTwice v2 pipeline.
+"""Centralized system prompts for the ThinkTwice pipeline.
 
 Each prompt is a template string that can be formatted with relevant variables.
 All Claude API calls should reference prompts from this module.
@@ -331,7 +331,7 @@ VERIFICATION RESULTS:
 Compare both versions against the constraints and decide which to use as the final output."""
 
 # ---------------------------------------------------------------------------
-# Fallback prompt for v1 compatibility
+# Fallback prompt when no constraints are provided
 # ---------------------------------------------------------------------------
 
 DRAFT_FALLBACK_CONSTRAINT = "Respond accurately, completely, and helpfully to the user's input."

@@ -1,4 +1,4 @@
-"""Tests for the v2 refiner module."""
+"""Tests for the refiner module."""
 
 import pytest
 from unittest.mock import AsyncMock
@@ -7,10 +7,9 @@ from core.refiner import Refiner
 from core.schemas import (
     Constraint, ConstraintType, ConstraintPriority,
     ConstraintEvaluation, ConstraintVerdict, ClaimToVerify,
-    CritiqueResult, VerificationResultV2, ClaimVerdict,
+    CritiqueResult, VerificationResult, ClaimVerdict,
     ChangeRecord, RefineResult,
 )
-from models.schemas import InputMode, Critique, VerificationResult, RefinedResponse
 
 
 def _make_constraint(id: str) -> Constraint:
@@ -34,8 +33,8 @@ def _make_critique_result() -> CritiqueResult:
     )
 
 
-def _make_verification() -> VerificationResultV2:
-    return VerificationResultV2(
+def _make_verification() -> VerificationResult:
+    return VerificationResult(
         claim_id="V1", claim="Test claim",
         web_verdict=ClaimVerdict.VERIFIED, web_source="https://example.com",
         web_explanation="Confirmed", self_verdict=ClaimVerdict.VERIFIED,
@@ -50,7 +49,7 @@ def refiner(mock_llm):
     return Refiner(mock_llm)
 
 
-class TestRefinerV2:
+class TestRefiner:
     @pytest.mark.asyncio
     async def test_selective_refine_returns_result(self, refiner, mock_llm):
         """Test selective refinement returns structured result."""
@@ -85,19 +84,3 @@ class TestRefinerV2:
 
         assert result.refined_response == "Draft text"
         assert len(result.changes_made) == 0
-
-    @pytest.mark.asyncio
-    async def test_v1_produce_still_works(self, refiner, mock_llm):
-        """Test backward-compatible v1 produce method."""
-        mock_llm.generate_with_tools.return_value = {
-            "content": "Refined content",
-            "confidence": 80,
-            "changes_made": ["Fixed issue 1"],
-        }
-
-        v1_critique = Critique(issues=[], strengths=["Good"], claims_to_verify=[], confidence=60)
-        result = await refiner.produce("input", "draft", v1_critique, [], InputMode.QUESTION)
-
-        assert isinstance(result, RefinedResponse)
-        assert result.content == "Refined content"
-        assert result.confidence == 80

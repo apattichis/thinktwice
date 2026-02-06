@@ -1,6 +1,6 @@
 """Gatekeeper module - ask-and-gate mechanism (ART-inspired).
 
-Phase 2 of the v2 pipeline. Generates diagnostic sub-questions per constraint,
+Phase 2 of the ThinkTwice pipeline. Generates diagnostic sub-questions per constraint,
 evaluates the draft against them, and decides whether refinement is needed.
 """
 

@@ -4,7 +4,7 @@ import pytest
 from unittest.mock import AsyncMock
 
 from core.truster import Truster
-from core.schemas import Constraint, ConstraintType, ConstraintPriority, TrustResult, VerificationResultV2, ClaimVerdict
+from core.schemas import Constraint, ConstraintType, ConstraintPriority, TrustResult, VerificationResult, ClaimVerdict
 
 
 def _make_constraint(id: str) -> Constraint:

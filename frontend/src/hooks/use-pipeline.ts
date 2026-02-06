@@ -17,7 +17,6 @@ const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 const initialState: PipelineState = {
   isRunning: false,
-  pipelineVersion: "v2",
   currentIteration: 0,
   draft: { status: "idle", content: "" },
   critique: { status: "idle" },
@@ -45,14 +44,14 @@ export function usePipeline() {
     setState((prev) => ({ ...prev, isRunning: false }));
   }, []);
 
-  const run = useCallback(async (input: string, mode: InputMode, version: "v1" | "v2" = "v2") => {
+  const run = useCallback(async (input: string, mode: InputMode) => {
     reset();
-    setState((prev) => ({ ...prev, isRunning: true, pipelineVersion: version }));
+    setState((prev) => ({ ...prev, isRunning: true }));
 
     abortRef.current = new AbortController();
 
     try {
-      const response = await fetch(`${API_BASE}/api/think?version=${version}`, {
+      const response = await fetch(`${API_BASE}/api/think`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ input, mode }),
@@ -109,8 +108,6 @@ export function usePipeline() {
 
     function handleEvent(event: string, data: Record<string, unknown>) {
       switch (event) {
-        // === V2 events ===
-
         case "decompose_complete": {
           const constraints = (data.constraints as Constraint[]) || [];
           setState((prev) => ({
@@ -147,7 +144,6 @@ export function usePipeline() {
         }
 
         case "self_verify_claim": {
-          // Treat like a regular verify_claim but from self-verification
           const result = data as unknown as VerificationResult;
           setState((prev) => ({
             ...prev,
@@ -174,7 +170,7 @@ export function usePipeline() {
         }
 
         case "iteration_complete": {
-          // Convergence info — no special UI action needed
+          // Convergence info -- no special UI action needed
           break;
         }
 
@@ -190,8 +186,6 @@ export function usePipeline() {
           }));
           break;
         }
-
-        // === Shared V1/V2 events ===
 
         case "step_start": {
           const step = data.step as string;

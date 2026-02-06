@@ -1,6 +1,6 @@
 """Convergence checker - iterative loop control (ReVISE-inspired).
 
-Phase 6 of the v2 pipeline. Lightweight constraint re-check to determine
+Phase 6 of the ThinkTwice pipeline. Lightweight constraint re-check to determine
 whether the refinement loop should continue or has converged.
 """
 

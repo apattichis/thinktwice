@@ -170,7 +170,6 @@ export default function Home() {
                     refine: state.refine.duration_ms,
                     trust: state.trust.duration_ms,
                   }}
-                  version={state.pipelineVersion}
                   iteration={state.currentIteration}
                 />
 

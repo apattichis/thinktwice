@@ -1,9 +1,9 @@
 """CLI entry point for the ThinkTwice evaluation framework.
 
 Usage:
-    python eval/run_eval.py --dataset factcheck50 --pipeline v2 --output results/
-    python eval/run_eval.py --dataset truthfulqa --pipeline both --output results/ --samples 100
-    python eval/run_eval.py --ablation --dataset factcheck50 --output results/
+    python eval/run_eval.py --dataset factcheck_bench --pipeline thinktwice --output results/
+    python eval/run_eval.py --dataset truthfulqa --pipeline all --output results/ --samples 100
+    python eval/run_eval.py --ablation --dataset factcheck_bench --output results/
     python eval/run_eval.py --report --input results/ --output results/
 """
 
@@ -21,7 +21,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "backend"))
 from eval.runner import EvalRunner
 from eval.metrics import compute_all_metrics
 from eval.report import generate_report
-from eval.compare import compare_v1_v2
+from eval.compare import compare_pipelines
 
 
 def setup_logging(verbose: bool = False):
@@ -61,12 +61,11 @@ async def run_pipeline(dataset: list[dict], dataset_name: str, version: str, out
 
 
 async def run_all(dataset: list[dict], dataset_name: str, output_dir: str, max_samples: int | None = None):
-    """Run single-shot baseline, v1, and v2 on the same dataset and compare.
+    """Run single-shot baseline and ThinkTwice on the same dataset and compare.
 
-    Three baselines:
+    Two baselines:
     - Single-shot: Raw Claude API call, no pipeline (control group)
-    - V1: Original 4-step linear pipeline
-    - V2: Research-inspired pipeline with gating, iteration, and trust ranking
+    - ThinkTwice: Self-correcting pipeline with gating, iteration, and trust ranking
     """
     print(f"\n{'='*60}")
     print(f"  Running SINGLE-SHOT baseline on {dataset_name}...")
@@ -74,54 +73,50 @@ async def run_all(dataset: list[dict], dataset_name: str, output_dir: str, max_s
     ss_results = await run_pipeline(dataset, dataset_name, "single_shot", f"{output_dir}/single_shot", max_samples)
 
     print(f"\n{'='*60}")
-    print(f"  Running V1 pipeline on {dataset_name}...")
+    print(f"  Running THINKTWICE pipeline on {dataset_name}...")
     print(f"{'='*60}\n")
-    v1_results = await run_pipeline(dataset, dataset_name, "v1", f"{output_dir}/v1", max_samples)
+    tt_results = await run_pipeline(dataset, dataset_name, "thinktwice", f"{output_dir}/thinktwice", max_samples)
 
-    print(f"\n{'='*60}")
-    print(f"  Running V2 pipeline on {dataset_name}...")
-    print(f"{'='*60}\n")
-    v2_results = await run_pipeline(dataset, dataset_name, "v2", f"{output_dir}/v2", max_samples)
-
-    # Compare v1 vs v2
-    comparison = compare_v1_v2(v1_results, v2_results)
-
-    # 3-way McNemar's test
-    from eval.compare import mcnemar_three_way
-    comparison["mcnemar_three_way"] = mcnemar_three_way(ss_results, v1_results, v2_results)
+    # Compare pipelines
+    comparison = compare_pipelines(ss_results, tt_results)
 
     # Compute single-shot metrics for the report
     ss_metrics = compute_all_metrics(ss_results)
 
-    # Generate report with all baselines
+    # Generate report with both baselines
     report_path = generate_report(
-        v2_results,
+        tt_results,
         dataset_name,
         output_dir=output_dir,
         comparison=comparison,
         single_shot_metrics=ss_metrics,
     )
 
-    v1m = comparison['v1_metrics']
-    v2m = comparison['v2_metrics']
+    ssm = ss_metrics
+    ttm = comparison['thinktwice_metrics']
 
     print(f"\n{'='*60}")
     print(f"  RESULTS SUMMARY")
     print(f"{'='*60}")
-    print(f"\n  {'Metric':<22} {'Single-Shot':>12} {'V1':>12} {'V2':>12}")
-    print(f"  {'-'*58}")
-    print(f"  {'Accuracy':<22} {ss_metrics['accuracy']['accuracy']:>11.1%} {v1m['accuracy']['accuracy']:>11.1%} {v2m['accuracy']['accuracy']:>11.1%}")
-    print(f"  {'Macro F1':<22} {ss_metrics['classification']['macro']['f1']:>11.3f} {v1m['classification']['macro']['f1']:>11.3f} {v2m['classification']['macro']['f1']:>11.3f}")
-    print(f"  {'Weighted F1':<22} {ss_metrics['classification']['weighted']['f1']:>11.3f} {v1m['classification']['weighted']['f1']:>11.3f} {v2m['classification']['weighted']['f1']:>11.3f}")
-    print(f"  {'Mean Latency':<22} {ss_metrics['latency']['mean_ms']/1000:>10.1f}s {v1m['latency']['mean_ms']/1000:>10.1f}s {v2m['latency']['mean_ms']/1000:>10.1f}s")
+    print(f"\n  {'Metric':<22} {'Single-Shot':>12} {'ThinkTwice':>12}")
+    print(f"  {'-'*46}")
+    print(f"  {'Accuracy':<22} {ssm['accuracy']['accuracy']:>11.1%} {ttm['accuracy']['accuracy']:>11.1%}")
+    print(f"  {'Macro F1':<22} {ssm['classification']['macro']['f1']:>11.3f} {ttm['classification']['macro']['f1']:>11.3f}")
+    print(f"  {'Weighted F1':<22} {ssm['classification']['weighted']['f1']:>11.3f} {ttm['classification']['weighted']['f1']:>11.3f}")
+    print(f"  {'Mean Latency':<22} {ssm['latency']['mean_ms']/1000:>10.1f}s {ttm['latency']['mean_ms']/1000:>10.1f}s")
 
     sig = comparison.get('statistical_significance', {})
     if sig:
-        print(f"\n  Statistical Significance (V2 vs V1):")
-        print(f"    t={sig.get('t_stat', 0):.4f}, p={sig.get('p_approx', 1):.6f} {'(significant)' if sig.get('significant') else '(not significant)'}")
+        print(f"\n  Statistical Significance (ThinkTwice vs Single-Shot):")
+        if sig.get("test") == "mcnemar":
+            chi2 = sig.get("chi2", "N/A")
+            p = sig.get("p_value", 1)
+            print(f"    chi2={chi2}, p={p:.6f} {'(significant)' if sig.get('significant') else '(not significant)'}")
+        else:
+            print(f"    t={sig.get('t_stat', 0):.4f}, p={sig.get('p_approx', 1):.6f} {'(significant)' if sig.get('significant') else '(not significant)'}")
 
     print(f"\n  Report: {report_path}")
-    return ss_results, v1_results, v2_results, comparison
+    return ss_results, tt_results, comparison
 
 
 async def run_ablation(dataset: list[dict], dataset_name: str, output_dir: str, max_samples: int | None = None):
@@ -146,7 +141,7 @@ async def run_ablation(dataset: list[dict], dataset_name: str, output_dir: str, 
 
     # Generate report with ablation
     report_path = generate_report(
-        ablation_results.get("v2_full", []),
+        ablation_results.get("thinktwice_full", []),
         dataset_name,
         output_dir=output_dir,
         ablation_results=ablation_results,
@@ -184,17 +179,17 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  python eval/run_eval.py --dataset factcheck50 --pipeline v2
-  python eval/run_eval.py --dataset truthfulqa --pipeline both --samples 50
-  python eval/run_eval.py --ablation --dataset factcheck50
+  python eval/run_eval.py --dataset factcheck_bench --pipeline thinktwice
+  python eval/run_eval.py --dataset truthfulqa --pipeline all --samples 50
+  python eval/run_eval.py --ablation --dataset factcheck_bench
   python eval/run_eval.py --report --input results/
         """,
     )
 
     parser.add_argument("--dataset", choices=["factcheck50", "factcheck_bench", "truthfulqa", "halueval"],
                         help="Dataset to evaluate on")
-    parser.add_argument("--pipeline", choices=["v1", "v2", "single_shot", "all"], default="v2",
-                        help="Pipeline version: v1, v2, single_shot, or all (runs all 3 baselines)")
+    parser.add_argument("--pipeline", choices=["thinktwice", "single_shot", "all"], default="thinktwice",
+                        help="Pipeline version: thinktwice, single_shot, or all (runs both)")
     parser.add_argument("--output", default="results", help="Output directory (default: results)")
     parser.add_argument("--samples", type=int, default=None, help="Max samples to process")
     parser.add_argument("--ablation", action="store_true", help="Run ablation study")

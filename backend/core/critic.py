@@ -1,16 +1,13 @@
 """Critic module - per-constraint evaluation (DeCRIM-inspired).
 
-Phase 3 of the v2 pipeline. Evaluates a draft against each constraint,
+Phase 3 of the ThinkTwice pipeline. Evaluates a draft against each constraint,
 identifies violations, and extracts verifiable claims.
-
-Also maintains backward compatibility with v1 critique interface.
 """
 
 import logging
 from typing import Optional
 
 from services.llm import LLMService
-from models.schemas import InputMode, Critique, CritiqueIssue
 from core.schemas import (
     Constraint,
     ConstraintEvaluation,
@@ -22,51 +19,8 @@ from core.prompts import CRITIQUE_SYSTEM_PROMPT, CRITIQUE_USER_PROMPT
 
 logger = logging.getLogger(__name__)
 
-# V1 critique tools (kept for backward compatibility)
-CRITIC_TOOLS_V1 = [
-    {
-        "name": "submit_critique",
-        "description": "Submit a structured critique of the draft response",
-        "input_schema": {
-            "type": "object",
-            "properties": {
-                "issues": {
-                    "type": "array",
-                    "items": {
-                        "type": "object",
-                        "properties": {
-                            "description": {"type": "string"},
-                            "severity": {
-                                "type": "string",
-                                "enum": ["low", "medium", "high"],
-                            },
-                            "quote": {
-                                "type": "string",
-                                "description": "The specific part of the draft this refers to",
-                            },
-                        },
-                        "required": ["description", "severity"],
-                    },
-                },
-                "strengths": {"type": "array", "items": {"type": "string"}},
-                "claims_to_verify": {
-                    "type": "array",
-                    "items": {"type": "string"},
-                    "description": "Specific factual claims that should be checked",
-                },
-                "confidence": {
-                    "type": "integer",
-                    "minimum": 0,
-                    "maximum": 100,
-                },
-            },
-            "required": ["issues", "strengths", "claims_to_verify", "confidence"],
-        },
-    }
-]
-
-# V2 critique tools with per-constraint evaluation
-CRITIC_TOOLS_V2 = [
+# Critique tools with per-constraint evaluation
+CRITIC_TOOLS = [
     {
         "name": "submit_critique",
         "description": "Submit per-constraint evaluation and extracted claims",
@@ -130,25 +84,6 @@ CRITIC_TOOLS_V2 = [
     }
 ]
 
-CRITIC_V1_SYSTEM_PROMPT = """You are a rigorous, adversarial critic. Your job is to find EVERYTHING wrong
-with the draft response before it reaches the user.
-
-Analyze for:
-- Factual errors or unsupported claims
-- Logical fallacies or reasoning gaps
-- Missing important nuance or context
-- Overconfident statements presented as fact
-- Potential hallucinations (specific numbers, dates, names that could be fabricated)
-- Bias or one-sidedness
-
-Also identify what the draft got RIGHT — the strengths that should be preserved.
-
-Extract SPECIFIC factual claims that can be independently verified. These should be concrete,
-checkable statements — not vague topics.
-
-Be thorough. Be harsh. The next step will verify your claims against real sources.
-You MUST use the submit_critique tool to provide your analysis."""
-
 
 def _format_constraints(constraints: list[Constraint]) -> str:
     """Format constraints for prompt insertion."""
@@ -166,53 +101,6 @@ class Critic:
     def __init__(self, llm: LLMService):
         self.llm = llm
 
-    async def analyze(
-        self, user_input: str, draft: str, mode: InputMode
-    ) -> Critique:
-        """V1-compatible critique interface.
-
-        Returns the v1 Critique model for backward compatibility.
-        """
-        user_message = f"""Original input: {user_input}
-
-Mode: {mode.value}
-
-Draft response to critique:
-{draft}
-
-Analyze this draft thoroughly and use the submit_critique tool to provide your structured critique."""
-
-        result = await self.llm.generate_with_tools(
-            system=CRITIC_V1_SYSTEM_PROMPT,
-            user=user_message,
-            tools=CRITIC_TOOLS_V1,
-            tool_choice={"type": "tool", "name": "submit_critique"},
-        )
-
-        if result is None:
-            return Critique(
-                issues=[],
-                strengths=["Draft appears reasonable"],
-                claims_to_verify=[],
-                confidence=50,
-            )
-
-        issues = [
-            CritiqueIssue(
-                description=i.get("description", ""),
-                severity=i.get("severity", "medium"),
-                quote=i.get("quote"),
-            )
-            for i in result.get("issues", [])
-        ]
-
-        return Critique(
-            issues=issues,
-            strengths=result.get("strengths", []),
-            claims_to_verify=result.get("claims_to_verify", []),
-            confidence=result.get("confidence", 50),
-        )
-
     async def critique(
         self,
         draft: str,
@@ -221,7 +109,7 @@ Analyze this draft thoroughly and use the submit_critique tool to provide your s
         input_text: str = "",
         mode: str = "question",
     ) -> CritiqueResult:
-        """V2 per-constraint critique.
+        """Per-constraint critique.
 
         Args:
             draft: The draft response to evaluate.
@@ -247,7 +135,7 @@ Analyze this draft thoroughly and use the submit_critique tool to provide your s
         )
 
         logger.info(
-            "Running v2 critique on %d constraints (%d failing)",
+            "Running critique on %d constraints (%d failing)",
             len(constraints),
             len(failing_constraints),
         )
@@ -256,7 +144,7 @@ Analyze this draft thoroughly and use the submit_critique tool to provide your s
             result = await self.llm.generate_with_tools(
                 system=system_prompt,
                 user=user_prompt,
-                tools=CRITIC_TOOLS_V2,
+                tools=CRITIC_TOOLS,
                 tool_choice={"type": "tool", "name": "submit_critique"},
             )
 
@@ -322,7 +210,7 @@ Analyze this draft thoroughly and use the submit_critique tool to provide your s
                     constraint_id=c.id,
                     verdict=ConstraintVerdict.PARTIALLY_SATISFIED,
                     confidence=30,
-                    feedback="Unable to evaluate — critique step failed",
+                    feedback="Unable to evaluate -- critique step failed",
                 )
                 for c in constraints
             ],
