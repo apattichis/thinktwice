@@ -111,6 +111,15 @@ def _classify_output(output: str) -> str:
         "more precise statement",
         "correct in its basic premise but",
         "accurate in broad terms but",
+        "too categorical",
+        "significantly mythologized",
+        "mythologized",
+        "captures an essential truth",
+        "essential truth, though",
+        "substantial overstatement",
+        "substantial oversimplification",
+        "were a critical trigger",
+        "were the trigger",
     ]
     if any(s in closer for s in partial_closer_signals):
         return "partial"
@@ -184,6 +193,15 @@ def _classify_output(output: str) -> str:
         "claim is not true",
         "widely debunked",
         "thoroughly debunked",
+        "fundamentally incorrect",
+        "common misconception",
+        "substantial overestimation",
+        "overestimation",
+        "**inaccurate**",
+        "this claim is not",
+        "this is not correct",
+        "does not accurately",
+        "oversimplified to the point of being incorrect",
     ]
     if any(s in closer for s in false_closer_signals):
         return "false"
@@ -262,6 +280,17 @@ def _classify_output(output: str) -> str:
         "mathematically accurate",
         "the numbers confirm",
         "the math checks out",
+        "entirely accurate",
+        "substantially accurate",
+        "overall accuracy: very high",
+        "accuracy: very high",
+        "accuracy: high",
+        "the claim is entirely",
+        "claim is substantially",
+        "is entirely correct",
+        "is substantially correct",
+        "well-supported by evidence",
+        "supported by evidence",
     ]
     if any(s in closer for s in true_closer_signals):
         return "true"
