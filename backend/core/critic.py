@@ -277,7 +277,7 @@ Analyze this draft thoroughly and use the submit_critique tool to provide your s
                             evidence_quote=ev.get("evidence_quote"),
                         )
                     )
-                except (KeyError, ValueError) as e:
+                except (KeyError, ValueError, TypeError) as e:
                     logger.warning("Skipping malformed evaluation: %s", e)
 
             # Parse claims to verify
@@ -292,7 +292,7 @@ Analyze this draft thoroughly and use the submit_critique tool to provide your s
                             source_quote=cl.get("source_quote", ""),
                         )
                     )
-                except (KeyError, ValueError) as e:
+                except (KeyError, ValueError, TypeError) as e:
                     logger.warning("Skipping malformed claim: %s", e)
 
             critique_result = CritiqueResult(
