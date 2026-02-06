@@ -52,11 +52,11 @@ def get_dataset(name: str, max_samples: int | None = None) -> list[dict]:
         raise ValueError(f"Unknown dataset: {name}. Choose from: factcheck50, factcheck_bench, truthfulqa, halueval")
 
 
-async def run_pipeline(dataset: list[dict], dataset_name: str, version: str, output_dir: str, max_samples: int | None = None):
+async def run_pipeline(dataset: list[dict], dataset_name: str, version: str, output_dir: str, max_samples: int | None = None, resume_from: str | None = None):
     """Run a single pipeline version on a dataset."""
     runner = EvalRunner(pipeline_version=version, output_dir=output_dir)
     await runner.initialize()
-    results = await runner.run_dataset(dataset, f"{dataset_name}", max_samples=max_samples)
+    results = await runner.run_dataset(dataset, f"{dataset_name}", max_samples=max_samples, resume_from=resume_from)
     return results
 
 
@@ -196,6 +196,7 @@ Examples:
     parser.add_argument("--ablation", action="store_true", help="Run ablation study")
     parser.add_argument("--report", action="store_true", help="Generate report from existing results")
     parser.add_argument("--input", default="results", help="Input directory for report generation")
+    parser.add_argument("--resume", default=None, help="Path to checkpoint file to resume from")
     parser.add_argument("-v", "--verbose", action="store_true", help="Verbose logging")
 
     args = parser.parse_args()
@@ -217,7 +218,7 @@ Examples:
         asyncio.run(run_all(dataset, args.dataset, args.output, args.samples))
     else:
         async def _run():
-            results = await run_pipeline(dataset, args.dataset, args.pipeline, args.output, args.samples)
+            results = await run_pipeline(dataset, args.dataset, args.pipeline, args.output, args.samples, resume_from=args.resume)
             metrics = compute_all_metrics(results)
             print(f"\nResults ({len(results)} samples):")
             print(f"  Accuracy: {metrics['accuracy']['accuracy']:.1%}")
