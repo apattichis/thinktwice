@@ -75,14 +75,26 @@ def _resave_results(results: list[dict], output_dir: str, dataset_name: str):
     logging.getLogger(__name__).info("Re-saved results with judgements to %s", latest)
 
 
-async def run_all(dataset: list[dict], dataset_name: str, output_dir: str, max_samples: int | None = None):
+async def run_all(dataset: list[dict], dataset_name: str, output_dir: str, max_samples: int | None = None, ss_results_path: str | None = None):
     """Run single-shot baseline and ThinkTwice on the same dataset and compare."""
-    print(f"\n{'='*60}")
-    print(f"  Running SINGLE-SHOT baseline on {dataset_name}...")
-    print(f"{'='*60}\n")
-    ss_results = await run_pipeline(dataset, dataset_name, "single_shot", f"{output_dir}/single_shot", max_samples)
-    ss_results = await _post_process(ss_results, dataset_name)
-    _resave_results(ss_results, f"{output_dir}/single_shot", dataset_name)
+    if ss_results_path:
+        # Reuse existing SS results
+        print(f"\n{'='*60}")
+        print(f"  Loading existing SINGLE-SHOT results from {ss_results_path}...")
+        print(f"{'='*60}\n")
+        with open(ss_results_path) as f:
+            data = json.load(f)
+        ss_results = data.get("results", [])
+        # Re-run post-processing to ensure judgements are attached
+        ss_results = await _post_process(ss_results, dataset_name)
+        print(f"  Loaded {len(ss_results)} single-shot results")
+    else:
+        print(f"\n{'='*60}")
+        print(f"  Running SINGLE-SHOT baseline on {dataset_name}...")
+        print(f"{'='*60}\n")
+        ss_results = await run_pipeline(dataset, dataset_name, "single_shot", f"{output_dir}/single_shot", max_samples)
+        ss_results = await _post_process(ss_results, dataset_name)
+        _resave_results(ss_results, f"{output_dir}/single_shot", dataset_name)
 
     print(f"\n{'='*60}")
     print(f"  Running THINKTWICE pipeline on {dataset_name}...")
@@ -183,6 +195,7 @@ Examples:
     parser.add_argument("--report", action="store_true", help="Generate report from existing results")
     parser.add_argument("--input", default="results", help="Input directory for report generation")
     parser.add_argument("--resume", default=None, help="Path to checkpoint file to resume from")
+    parser.add_argument("--ss-results", default=None, help="Path to existing single-shot results JSON (reuse for --pipeline all)")
     parser.add_argument("-v", "--verbose", action="store_true", help="Verbose logging")
 
     args = parser.parse_args()
@@ -199,7 +212,7 @@ Examples:
     print(f"Loaded {len(dataset)} samples from {args.dataset}")
 
     if args.pipeline == "all":
-        asyncio.run(run_all(dataset, args.dataset, args.output, args.samples))
+        asyncio.run(run_all(dataset, args.dataset, args.output, args.samples, ss_results_path=args.ss_results))
     else:
         async def _run():
             results = await run_pipeline(dataset, args.dataset, args.pipeline, args.output, args.samples, resume_from=args.resume)

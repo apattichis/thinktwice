@@ -135,6 +135,7 @@ class EvalRunner:
 
         events = []
         final_output = ""
+        draft_output = ""
         last_refine_content = ""
         metrics_data = {}
         start = time.monotonic()
@@ -155,6 +156,10 @@ class EvalRunner:
                             pass
 
                 events.append({"event": event_name, "data": event_data})
+
+                # Capture draft content for format guard comparison
+                if event_name == "step_complete" and event_data.get("step") == "draft":
+                    draft_output = event_data.get("content", "")
 
                 # Capture refine step content as fallback for final output
                 if event_name == "step_complete" and event_data.get("step") == "refine":
@@ -186,6 +191,7 @@ class EvalRunner:
             "mode": mode,
             "pipeline_version": self.pipeline_version,
             "output": final_output,
+            "draft_output": draft_output,
             "duration_ms": duration,
             "metrics": metrics_data,
             "events": events,

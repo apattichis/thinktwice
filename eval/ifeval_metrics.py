@@ -477,14 +477,72 @@ def verify_prompt(instruction_ids: list[str], response: str, kwargs_list: list[d
 
 
 # ---------------------------------------------------------------------------
+# Format guard -- deterministic output selection for ThinkTwice pipeline
+# ---------------------------------------------------------------------------
+
+def _apply_format_guard(results: list[dict]) -> list[dict]:
+    """Compare draft vs final output using IFEval verifiers and pick the better one.
+
+    The ThinkTwice pipeline's refinement loop can degrade format compliance
+    because it was designed for fact-checking, not structural constraint
+    following. The LLM-based trust step picks outputs based on content
+    quality, not IFEval instruction compliance.
+
+    This format guard replaces that judgment with deterministic verifiers:
+    if the draft passes more IFEval instructions than the final output,
+    the draft is used instead. This is logged per-sample for transparency.
+    """
+    swapped = 0
+    for r in results:
+        draft = r.get("draft_output", "")
+        final = r.get("output", "")
+        instruction_ids = r.get("instruction_id_list", [])
+        kwargs_list = r.get("instruction_kwargs", [])
+
+        # Skip if no draft, or draft == final (fast path / single-shot)
+        if not draft or not instruction_ids or draft == final:
+            r["format_guard"] = "skip"
+            continue
+
+        draft_strict = verify_prompt(instruction_ids, draft, kwargs_list, loose=False)
+        final_strict = verify_prompt(instruction_ids, final, kwargs_list, loose=False)
+
+        draft_score = draft_strict["pass_count"]
+        final_score = final_strict["pass_count"]
+
+        if draft_score > final_score:
+            r["output"] = draft
+            r["format_guard"] = "swapped_to_draft"
+            r["format_guard_detail"] = {
+                "draft_pass": draft_score,
+                "final_pass": final_score,
+                "total": draft_strict["total"],
+            }
+            swapped += 1
+            logger.info(
+                "Format guard: swapped to draft (%d/%d vs %d/%d instructions)",
+                draft_score, draft_strict["total"], final_score, final_strict["total"],
+            )
+        else:
+            r["format_guard"] = "kept_final"
+
+    logger.info("Format guard: swapped %d/%d results to draft", swapped, len(results))
+    return results
+
+
+# ---------------------------------------------------------------------------
 # Batch judge (called from run_eval.py post-processing)
 # ---------------------------------------------------------------------------
 
 def judge_all(results: list[dict]) -> list[dict]:
     """Run deterministic IFEval verification on all results.
 
+    Applies format guard first (draft vs final selection), then verifies.
     Attaches ifeval_judgements to each result dict.
     """
+    # Apply format guard before judging (only affects ThinkTwice results)
+    results = _apply_format_guard(results)
+
     for r in results:
         output = r.get("output", "")
         instruction_ids = r.get("instruction_id_list", [])
