@@ -952,9 +952,16 @@ def generate_report(
             f"{v2_lat_mean / ss_lat_mean:.1f}x overhead compared to single-shot "
             f"({ss_lat_mean:.1f}s). This cost is justified when fact-checking accuracy "
             f"is critical, as the pipeline provides source-verified evidence and "
-            f"structured reasoning. For latency-sensitive applications, the gate mechanism "
-            f"enables fast-path processing for high-confidence claims."
+            f"structured reasoning."
         )
+        if gate["fast_path_rate"] == 0 and gate["total_runs"] > 0:
+            lines.append(
+                f"The gate mechanism was designed to fast-path high-confidence claims, "
+                f"but the current threshold configuration (confidence >= 85, 100% constraint "
+                f"pass rate) proved too strict — no claims met the criteria. Lowering these "
+                f"thresholds would enable latency savings on clear-cut claims without "
+                f"re-running the full pipeline."
+            )
         lines.append("")
 
         # Per-class insights
@@ -1002,10 +1009,19 @@ def generate_report(
     if gate["total_runs"] > 0:
         lines.append("### V2 Component Insights")
         lines.append("")
-        lines.append(
-            f"- **Gate mechanism** fast-pathed {gate['fast_path_rate']:.0%} of claims, "
-            f"saving processing time on high-confidence inputs."
-        )
+        if gate["fast_path_rate"] > 0:
+            lines.append(
+                f"- **Gate mechanism** fast-pathed {gate['fast_path_rate']:.0%} of claims, "
+                f"saving processing time on high-confidence inputs."
+            )
+        else:
+            lines.append(
+                f"- **Gate mechanism** did not fast-path any claims. The gate requires "
+                f"confidence >= 85 and 100% constraint satisfaction — thresholds that no "
+                f"draft response met. This is a tuning opportunity: relaxing these thresholds "
+                f"(e.g., confidence >= 70, pass rate >= 80%) would enable fast-path savings "
+                f"on straightforward claims."
+            )
         if trust["total_runs"] > 0:
             lines.append(
                 f"- **Trust ranking** selected the refined output {trust['refined_wins']} times "
@@ -1092,14 +1108,22 @@ def generate_report(
         lines.append(
             f"3. **Latency is the primary cost:** V2's mean latency of "
             f"{v2m['latency']['mean_ms']/1000:.1f}s reflects the thorough multi-step "
-            f"verification process. The gate mechanism provides a fast path for "
-            f"clear-cut claims."
+            f"verification process."
         )
         if gate["total_runs"] > 0:
-            lines.append(
-                f"4. **Gate mechanism enables efficiency:** {gate['fast_path_rate']:.0%} "
-                f"of claims skip the full refinement loop, balancing thoroughness with speed."
-            )
+            if gate["fast_path_rate"] > 0:
+                lines.append(
+                    f"4. **Gate mechanism enables efficiency:** {gate['fast_path_rate']:.0%} "
+                    f"of claims skip the full refinement loop, balancing thoroughness with speed."
+                )
+            else:
+                lines.append(
+                    f"4. **Gate mechanism requires tuning:** The current thresholds "
+                    f"(confidence >= 85, 100% constraint pass rate) were too strict for any "
+                    f"claim to qualify for fast-path, resulting in all claims undergoing full "
+                    f"refinement. Relaxing these thresholds is expected to reduce mean latency "
+                    f"on straightforward claims without sacrificing accuracy."
+                )
         if trust["total_runs"] > 0:
             lines.append(
                 f"5. **Trust ranking validates refinement:** The refined output was selected "
