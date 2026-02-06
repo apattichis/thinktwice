@@ -86,6 +86,10 @@ async def run_all(dataset: list[dict], dataset_name: str, output_dir: str, max_s
     # Compare v1 vs v2
     comparison = compare_v1_v2(v1_results, v2_results)
 
+    # 3-way McNemar's test
+    from eval.compare import mcnemar_three_way
+    comparison["mcnemar_three_way"] = mcnemar_three_way(ss_results, v1_results, v2_results)
+
     # Compute single-shot metrics for the report
     ss_metrics = compute_all_metrics(ss_results)
 

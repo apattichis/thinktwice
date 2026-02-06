@@ -654,17 +654,51 @@ def generate_report(
             lines.append("![Difficulty Comparison](charts/difficulty_comparison.png)")
             lines.append("")
 
-        # Statistical significance
+        # Statistical significance — McNemar's test (standard for classifier comparison)
         sig = comparison.get("statistical_significance")
-        if sig:
+        if sig and sig.get("test") == "mcnemar":
+            lines.append("### Statistical Significance (McNemar's Test)")
+            lines.append("")
+            lines.append(f"McNemar's test compares classifier accuracy on paired samples by analyzing discordant predictions (cases where one pipeline is correct and the other is not).")
+            lines.append("")
+            lines.append(f"- **Significant:** {'Yes' if sig.get('significant') else 'No'} (p < 0.05)")
+            chi2 = sig.get("chi2")
+            if chi2 is not None:
+                lines.append(f"- **Chi-squared:** {chi2:.4f}")
+                lines.append(f"- **p-value:** {sig.get('p_value', 1):.6f}")
+            lines.append(f"- **Paired samples:** {sig.get('n', 0)}")
+            lines.append(f"- **Both correct:** {sig.get('both_correct', 0)}")
+            lines.append(f"- **V1 only correct:** {sig.get('a_only_correct', 0)}")
+            lines.append(f"- **V2 only correct:** {sig.get('b_only_correct', 0)}")
+            lines.append(f"- **Both wrong:** {sig.get('both_wrong', 0)}")
+            lines.append("")
+        elif sig:
+            # Fallback for old-format t-test results
             lines.append("### Statistical Significance (Paired t-test)")
             lines.append("")
             lines.append(f"- **Significant:** {'Yes' if sig.get('significant') else 'No'} (p < 0.05)")
             lines.append(f"- **t-statistic:** {sig.get('t_stat', 0):.4f}")
             lines.append(f"- **p-value:** {sig.get('p_approx', 1):.6f}")
-            lines.append(f"- **Mean confidence delta (V2 - V1):** {sig.get('mean_delta', 0):+.2f}")
-            lines.append(f"- **Standard error:** {sig.get('std_err', 0):.4f}")
             lines.append(f"- **Paired samples:** {sig.get('n', 0)}")
+            lines.append("")
+
+        # 3-way McNemar comparison (if available)
+        mcnemar_3way = comparison.get("mcnemar_three_way")
+        if mcnemar_3way:
+            lines.append("### Pairwise Statistical Significance (McNemar's Test)")
+            lines.append("")
+            lines.append("| Comparison | Chi-squared | p-value | Significant |")
+            lines.append("|-----------|------------|---------|-------------|")
+            for label, key in [("V2 vs Single-Shot", "v2_vs_ss"), ("V2 vs V1", "v2_vs_v1"), ("V1 vs Single-Shot", "v1_vs_ss")]:
+                m = mcnemar_3way.get(key, {})
+                chi2 = m.get("chi2", "—")
+                p = m.get("p_value", "—")
+                sig_yn = "Yes" if m.get("significant") else "No"
+                if isinstance(chi2, (int, float)):
+                    lines.append(f"| {label} | {chi2:.4f} | {p:.6f} | {sig_yn} |")
+                else:
+                    reason = m.get("reason", "N/A")
+                    lines.append(f"| {label} | — | — | {sig_yn} ({reason}) |")
             lines.append("")
 
         # Paired analysis
