@@ -23,11 +23,33 @@ def _extract_output(result: dict) -> str:
     return ""
 
 
+def _extract_verdict_section(text: str) -> str:
+    """Extract text from the last verdict/conclusion section of structured output."""
+    import re
+    # Look for common verdict section headers (bold or H2) — broad matching
+    header_keywords = (
+        r"overall assessment|overall|conclusion|verdict|final assessment|"
+        r"bottom line|accuracy assessment|assessment|summary|"
+        r"in summary|key takeaway|final verdict|the bottom line"
+    )
+    patterns = [
+        rf'\*\*(?:{header_keywords})[:\s]*\*\*\s*(.*)',
+        rf'##\s*(?:{header_keywords})\s*\n(.*)',
+    ]
+    for pattern in patterns:
+        matches = list(re.finditer(pattern, text, re.IGNORECASE | re.DOTALL))
+        if matches:
+            # Take the last match (final verdict section)
+            return matches[-1].group(1).strip()[:600]
+    return ""
+
+
 def _classify_output(output: str) -> str:
     """Classify pipeline output as true/false/partial based on language cues.
 
     Uses multiple regions of the text for signal detection:
     - Opener (first 300 chars): strongest signal for conversational responses
+    - Verdict section: extracted from structured headers like **Overall:**
     - Closer (last 500 chars): verdict signal for structured/analytical responses
     - Full text: weaker but broad signal
 
@@ -37,7 +59,10 @@ def _classify_output(output: str) -> str:
     # Opening sentences carry the verdict signal (conversational style)
     opener = text[:300]
     # Closing sentences carry the verdict in analytical/structured outputs
-    closer = text[-500:] if len(text) > 500 else text
+    # Use last 800 chars (V1 conclusions can be long)
+    closer = text[-800:] if len(text) > 800 else text
+    # Extract verdict section from structured outputs (V1 style)
+    verdict_section = _extract_verdict_section(text)
 
     # --- Partial signals (check first — most specific) ---
     partial_signals = [
@@ -120,6 +145,11 @@ def _classify_output(output: str) -> str:
         "substantial oversimplification",
         "were a critical trigger",
         "were the trigger",
+        "too absolute to be",
+        "too absolute",
+        "too simplistic",
+        "too broad",
+        "too narrow",
     ]
     if any(s in closer for s in partial_closer_signals):
         return "partial"
@@ -202,6 +232,12 @@ def _classify_output(output: str) -> str:
         "this is not correct",
         "does not accurately",
         "oversimplified to the point of being incorrect",
+        "significantly overstated",
+        "significantly understated",
+        "significantly exaggerated",
+        "this claim is misleading",
+        "this is misleading",
+        "misleading claim",
     ]
     if any(s in closer for s in false_closer_signals):
         return "false"
@@ -312,6 +348,24 @@ def _classify_output(output: str) -> str:
     ]
     if any(s in text for s in true_signals_weak):
         return "true"
+
+    # Verdict section analysis (V1 structured outputs with **Overall:** etc.)
+    if verdict_section:
+        # Apply all signal lists to the extracted verdict section
+        if any(s in verdict_section for s in partial_signals):
+            return "partial"
+        if any(s in verdict_section for s in partial_closer_signals):
+            return "partial"
+        if any(s in verdict_section for s in false_signals):
+            return "false"
+        if any(s in verdict_section for s in false_closer_signals):
+            return "false"
+        if any(s in verdict_section for s in true_signals_strong):
+            return "true"
+        if any(s in verdict_section for s in true_closer_signals):
+            return "true"
+        if any(s in verdict_section for s in true_signals_weak):
+            return "true"
 
     # Last resort: look for clear verdict patterns anywhere
     if any(s in text for s in ["**verdict: true**", "**true**", "claim is supported"]):
