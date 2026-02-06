@@ -30,7 +30,12 @@ def _extract_verdict_section(text: str) -> str:
     header_keywords = (
         r"overall assessment|overall|conclusion|verdict|final assessment|"
         r"bottom line|accuracy assessment|assessment|summary|"
-        r"in summary|key takeaway|final verdict|the bottom line"
+        r"in summary|key takeaway|final verdict|the bottom line|"
+        r"additional context|scientific consensus|important caveats|"
+        r"more accurate framing|the actual situation|current status|"
+        r"scientific basis|key findings|important context|"
+        r"more complete picture|more accurate framework|"
+        r"problematic aspects|what the evidence shows"
     )
     patterns = [
         rf'\*\*(?:{header_keywords})[:\s]*\*\*\s*(.*)',
@@ -150,6 +155,12 @@ def _classify_output(output: str) -> str:
         "too simplistic",
         "too broad",
         "too narrow",
+        "scientifically contested",
+        "remains contested",
+        "remains controversial",
+        "still debated",
+        "subject to debate",
+        "open to interpretation",
     ]
     if any(s in closer for s in partial_closer_signals):
         return "partial"
@@ -238,6 +249,19 @@ def _classify_output(output: str) -> str:
         "this claim is misleading",
         "this is misleading",
         "misleading claim",
+        "does not support the claim",
+        "does not support this claim",
+        "evidence does not support",
+        "overstates what",
+        "significantly overstates",
+        "largely inaccurate",
+        "unsupported by current",
+        "unsupported by scientific",
+        "contradicts current",
+        "contradicts the",
+        "contradicts scientific",
+        "not well-supported",
+        "poorly supported",
     ]
     if any(s in closer for s in false_closer_signals):
         return "false"
@@ -327,6 +351,13 @@ def _classify_output(output: str) -> str:
         "is substantially correct",
         "well-supported by evidence",
         "supported by evidence",
+        "largely accurate",
+        "accurate based on",
+        "authoritative scientific data",
+        "widely accepted scientific",
+        "well-supported by scientific",
+        "confirmed by multiple",
+        "confirmed by scientific",
     ]
     if any(s in closer for s in true_closer_signals):
         return "true"
