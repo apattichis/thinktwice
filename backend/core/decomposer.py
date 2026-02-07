@@ -8,14 +8,13 @@ import logging
 from typing import Optional
 
 from services.llm import LLMService
-from models.schemas import InputMode
 from core.schemas import (
     Constraint,
     ConstraintType,
     ConstraintPriority,
     DecomposeResult,
 )
-from core.prompts import DECOMPOSE_SYSTEM_PROMPT, DECOMPOSE_MODE_PROMPTS
+from core.prompts import DECOMPOSE_SYSTEM_PROMPT, DECOMPOSE_USER_PROMPT
 
 logger = logging.getLogger(__name__)
 
@@ -78,31 +77,25 @@ class Decomposer:
     async def decompose(
         self,
         input_text: str,
-        mode: InputMode,
         scraped_content: Optional[str] = None,
     ) -> DecomposeResult:
         """Decompose input into constraints using Claude tool use.
 
         Args:
             input_text: The user's original input.
-            mode: Input mode (question, claim, url).
-            scraped_content: Extracted article content for URL mode.
+            scraped_content: Extracted article content for URL inputs.
 
         Returns:
             DecomposeResult with main_task, constraints, implicit_constraints,
             and difficulty_estimate.
         """
-        # Build mode-specific user prompt
-        mode_key = mode.value
-        template = DECOMPOSE_MODE_PROMPTS.get(mode_key, DECOMPOSE_MODE_PROMPTS["question"])
-
-        format_kwargs = {"input_text": input_text}
+        format_kwargs: dict[str, str] = {"input_text": input_text}
         if scraped_content:
             format_kwargs["scraped_content"] = scraped_content
 
-        user_message = template.format(**format_kwargs)
+        user_message = DECOMPOSE_USER_PROMPT.format(**format_kwargs)
 
-        logger.info("Decomposing input (mode=%s, length=%d)", mode.value, len(input_text))
+        logger.info("Decomposing input (length=%d)", len(input_text))
 
         try:
             result = await self.llm.generate_with_tools(

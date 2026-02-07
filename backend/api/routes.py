@@ -57,21 +57,12 @@ async def think_single_shot(request: Request, body: ThinkRequest):
 
 @router.get("/examples")
 async def get_examples():
-    """Return curated example prompts organized by mode."""
+    """Return curated example prompts."""
     return ExamplesResponse(
-        questions=[
+        examples=[
             "Is intermittent fasting safe for people with diabetes?",
-            "Explain how mRNA vaccines work. Are there long-term risks?",
-            "What causes the northern lights and how far south can they be seen?",
-            "How does blockchain technology actually work?",
-            "What are the real environmental impacts of electric vehicles?",
-        ],
-        claims=[
             "Humans only use 10% of their brain",
+            "What causes the northern lights and how far south can they be seen?",
             "The Great Wall of China is visible from space",
-            "Coffee stunts your growth",
-            "Napoleon Bonaparte was unusually short",
-            "Goldfish have a 3-second memory",
         ],
-        urls=[],  # Users provide their own URLs
     )

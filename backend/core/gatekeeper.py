@@ -89,14 +89,12 @@ class Gatekeeper:
         self,
         draft: str,
         constraints: list[Constraint],
-        mode: str,
     ) -> GateResult:
         """Evaluate the draft against constraints and decide on refinement.
 
         Args:
             draft: The draft response to evaluate.
             constraints: List of constraints to check against.
-            mode: Input mode (question, claim, url).
 
         Returns:
             GateResult with sub-questions, decision, confidence, and failing constraints.

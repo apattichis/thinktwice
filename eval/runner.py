@@ -77,16 +77,15 @@ class EvalRunner:
             trust_blend_enabled=settings.trust_blend_enabled,
         )
 
-    async def run_single_shot(self, input_text: str, mode: str = "question") -> dict:
+    async def run_single_shot(self, input_text: str) -> dict:
         """Run a single-shot baseline (raw Claude, no pipeline).
 
         This is the control group -- same model, zero self-correction.
         Shows the raw value added by the pipeline.
         """
-        from models.schemas import ThinkRequest, InputMode
+        from models.schemas import ThinkRequest
 
-        mode_map = {"question": InputMode.QUESTION, "claim": InputMode.CLAIM, "url": InputMode.URL}
-        request = ThinkRequest(input=input_text, mode=mode_map.get(mode, InputMode.QUESTION))
+        request = ThinkRequest(input=input_text)
 
         start = time.monotonic()
         try:
@@ -99,7 +98,6 @@ class EvalRunner:
 
         return {
             "input": input_text,
-            "mode": mode,
             "pipeline_version": "single_shot",
             "output": output,
             "duration_ms": duration,
@@ -122,16 +120,15 @@ class EvalRunner:
             "timestamp": datetime.now().isoformat(),
         }
 
-    async def run_single(self, input_text: str, mode: str = "question") -> dict:
+    async def run_single(self, input_text: str) -> dict:
         """Run a single input through the pipeline and collect all events."""
         # Single-shot baseline uses a separate path
         if self.pipeline_version == "single_shot":
-            return await self.run_single_shot(input_text, mode)
+            return await self.run_single_shot(input_text)
 
-        from models.schemas import ThinkRequest, InputMode
+        from models.schemas import ThinkRequest
 
-        mode_map = {"question": InputMode.QUESTION, "claim": InputMode.CLAIM, "url": InputMode.URL}
-        request = ThinkRequest(input=input_text, mode=mode_map.get(mode, InputMode.QUESTION))
+        request = ThinkRequest(input=input_text)
 
         events = []
         final_output = ""
@@ -173,7 +170,6 @@ class EvalRunner:
             logger.error("Pipeline failed for input: %s -- %s", input_text[:100], e)
             return {
                 "input": input_text,
-                "mode": mode,
                 "pipeline_version": self.pipeline_version,
                 "error": str(e),
                 "duration_ms": int((time.monotonic() - start) * 1000),
@@ -188,7 +184,6 @@ class EvalRunner:
 
         return {
             "input": input_text,
-            "mode": mode,
             "pipeline_version": self.pipeline_version,
             "output": final_output,
             "draft_output": draft_output,
@@ -234,7 +229,7 @@ class EvalRunner:
 
             logger.info("[%d/%d] Processing: %s", i + 1, total, sample["input"][:80])
 
-            result = await self.run_single(sample["input"], sample.get("mode", "question"))
+            result = await self.run_single(sample["input"])
 
             # Attach all sample metadata (gold data, domain, etc.)
             for key, value in sample.items():

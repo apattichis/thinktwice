@@ -8,10 +8,11 @@ The pipeline implements:
 
 import json
 import logging
+import re
 import time
 from typing import AsyncGenerator, Optional
 
-from models.schemas import ThinkRequest, InputMode
+from models.schemas import ThinkRequest
 from services.llm import LLMService
 from services.search import SearchService
 from services.scraper import ScraperService
@@ -27,6 +28,14 @@ from core.schemas import ConvergenceDecision
 from core.structural_enforcer import enforce as enforce_structure
 
 logger = logging.getLogger(__name__)
+
+# Simple URL detection pattern
+_URL_PATTERN = re.compile(r'^https?://\S+$', re.IGNORECASE)
+
+
+def _is_url(text: str) -> bool:
+    """Check if the input looks like a URL."""
+    return bool(_URL_PATTERN.match(text.strip()))
 
 
 class ThinkTwicePipeline:
@@ -88,8 +97,8 @@ class ThinkTwicePipeline:
         scraped_content: Optional[str] = None
         max_iter = max_iterations or self.max_iterations
 
-        # Pre-process: URL extraction
-        if request.mode == InputMode.URL:
+        # Pre-process: Auto-detect and extract URL content
+        if _is_url(request.input):
             try:
                 yield self._sse("step_start", {
                     "step": "extract",
@@ -121,7 +130,7 @@ class ThinkTwicePipeline:
 
         try:
             decompose_result = await self.decomposer.decompose(
-                request.input, request.mode, scraped_content
+                request.input, scraped_content
             )
         except Exception as e:
             logger.error("Decompose failed, using fallback: %s", e)
@@ -149,7 +158,7 @@ class ThinkTwicePipeline:
         })
 
         draft_content = ""
-        async for token in self.drafter.stream(user_input, request.mode):
+        async for token in self.drafter.stream(user_input):
             draft_content += token
             yield self._sse("step_stream", {"step": "draft", "token": token})
 
@@ -173,7 +182,7 @@ class ThinkTwicePipeline:
 
         try:
             gate_result = await self.gatekeeper.gate(
-                draft_content, decompose_result.constraints, request.mode.value
+                draft_content, decompose_result.constraints
             )
         except Exception as e:
             logger.error("Gate failed, defaulting to refine: %s", e)
@@ -227,7 +236,6 @@ class ThinkTwicePipeline:
                         decompose_result.constraints,
                         gate_result.failing_constraints,
                         input_text=request.input,
-                        mode=request.mode.value,
                     )
                 except Exception as e:
                     logger.error("Critique failed: %s", e)
@@ -304,7 +312,6 @@ class ThinkTwicePipeline:
                         critique_result,
                         verifications,
                         decompose_result.constraints,
-                        mode=request.mode.value,
                     )
                 except Exception as e:
                     logger.error("Refinement failed: %s", e)
@@ -467,7 +474,7 @@ class ThinkTwicePipeline:
         """Run a single-shot response without the pipeline for comparison."""
         user_input = request.input
 
-        if request.mode == InputMode.URL:
+        if _is_url(request.input):
             try:
                 extracted = await self.scraper.extract(request.input)
                 user_input = f"Analyze this article:\n\n{extracted}"

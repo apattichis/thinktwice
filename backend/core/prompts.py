@@ -23,25 +23,10 @@ Estimate difficulty as "easy", "medium", or "hard" based on the complexity of sa
 
 You MUST use the submit_decomposition tool to provide your analysis."""
 
-DECOMPOSE_MODE_PROMPTS = {
-    "question": """The user is asking a question. Decompose what a COMPLETE, ACCURATE answer must include.
-Consider: What sub-topics must be covered? What accuracy requirements exist? What level of detail is appropriate?
+DECOMPOSE_USER_PROMPT = """Analyze the user's input and decompose what a COMPLETE, ACCURATE response must include.
+Consider: What sub-topics must be covered? What accuracy requirements exist? What level of detail is appropriate? What format or structural requirements are specified?
 
-User's question: {input_text}""",
-
-    "claim": """The user is presenting a factual claim to be evaluated. Decompose what a thorough fact-check must address.
-Consider: What specific assertions need verification? What context is needed? What nuance matters?
-
-Claim to evaluate: {input_text}""",
-
-    "url": """The user wants an article analyzed and fact-checked. Decompose what a thorough analysis must cover.
-Consider: What are the key claims? What context is needed? What verification is required?
-
-Article content:
-{scraped_content}
-
-Original URL: {input_text}""",
-}
+User's input: {input_text}"""
 
 # ---------------------------------------------------------------------------
 # Phase 1: Drafting
@@ -66,27 +51,9 @@ CRITICAL FORMAT RULES:
 
 Prioritize CONSTRAINT COMPLIANCE over prose quality. A correct format with average prose is better than beautiful prose that violates constraints."""
 
-DRAFT_MODE_PROMPTS = {
-    "question": """Answer the user's question thoroughly and directly while satisfying all the constraints listed above.
+DRAFT_USER_PROMPT = """Answer the user's input thoroughly and directly while satisfying all the constraints listed above.
 
-Question: {input_text}""",
-
-    "claim": """Analyze this factual claim. Restate what it asserts, provide context, and give your initial assessment.
-Be specific about which parts seem accurate and which seem questionable.
-
-Your response MUST end with exactly one of:
-- **Verdict: True** — the core claim is factually accurate (minor caveats are acceptable)
-- **Verdict: False** — the core assertion is contradicted by evidence; the central factual claim is wrong
-- **Verdict: Partial** — the claim contains elements of truth but is oversimplified, embellished, misleading, or requires significant qualification
-
-Claim: {input_text}""",
-
-    "url": """Analyze this article. Summarize key points and identify the main factual claims.
-List each distinct factual claim that could be independently verified.
-
-Article:
-{scraped_content}""",
-}
+User's input: {input_text}"""
 
 # ---------------------------------------------------------------------------
 # Phase 2: Ask & Gate (ART-inspired)
@@ -148,7 +115,6 @@ DRAFT RESPONSE:
 {draft}
 
 Original user input: {input_text}
-Mode: {mode}
 
 Evaluate each constraint and extract all verifiable claims."""
 
@@ -263,22 +229,9 @@ FIX (must address):
 ACKNOWLEDGE (cannot fully fix, note the limitation):
 {acknowledge}
 
-{verdict_section}
+NOTE: Do NOT add any verdict line, summary line, or closing remark that wasn't in the original draft. The response should end exactly as the user's instructions require.
 
 You MUST use the submit_refinement tool to provide your refined response."""
-
-SELECTIVE_REFINE_VERDICT_SECTION = """VERDICT LINE (REQUIRED):
-Your refined_response MUST end with exactly one of the following lines:
-- **Verdict: True** — the core claim is factually accurate (minor caveats are acceptable)
-- **Verdict: False** — the core assertion is contradicted by evidence; the central factual claim is wrong
-- **Verdict: Partial** — the claim contains elements of truth but is oversimplified, embellished, misleading, or requires significant qualification. Use this when SOME sub-claims are verified but the overall framing is inaccurate or exaggerated.
-
-VERDICT DECISION RULE: Base your verdict on the verification results above.
-- If most claims are verified and none refuted → lean True
-- If the core assertion is directly contradicted by evidence → lean False
-- If truth is mixed with oversimplification, embellishment, or missing context → Partial"""
-
-SELECTIVE_REFINE_NO_VERDICT_SECTION = """NOTE: Do NOT add any verdict line, summary line, or closing remark that wasn't in the original draft. The response should end exactly as the user's instructions require."""
 
 SELECTIVE_REFINE_USER_PROMPT = """ORIGINAL DRAFT:
 {draft}

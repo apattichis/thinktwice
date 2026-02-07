@@ -2,43 +2,26 @@
 
 import { motion } from "framer-motion";
 import { ArrowUpRight } from "lucide-react";
-import type { InputMode } from "@/types";
 
-const examples: Record<InputMode, string[]> = {
-  question: [
-    "Is intermittent fasting safe for people with diabetes?",
-    "Explain how mRNA vaccines work. Are there long-term risks?",
-    "What causes the northern lights and how far south can they be seen?",
-    "How does blockchain technology actually work?",
-    "What are the real environmental impacts of electric vehicles?",
-  ],
-  claim: [
-    "Humans only use 10% of their brain",
-    "The Great Wall of China is visible from space",
-    "Coffee stunts your growth",
-    "Napoleon Bonaparte was unusually short",
-    "Goldfish have a 3-second memory",
-  ],
-  url: [],
-};
+const examples = [
+  "Is intermittent fasting safe for people with diabetes?",
+  "Humans only use 10% of their brain",
+  "What causes the northern lights and how far south can they be seen?",
+  "The Great Wall of China is visible from space",
+];
 
 interface ExamplePromptsProps {
-  mode: InputMode;
   onSelect: (text: string) => void;
 }
 
-export function ExamplePrompts({ mode, onSelect }: ExamplePromptsProps) {
-  const items = examples[mode].slice(0, 4);
-
-  if (!items.length) return null;
-
+export function ExamplePrompts({ onSelect }: ExamplePromptsProps) {
   return (
     <div className="w-full max-w-2xl mx-auto mt-6">
       <p className="text-[13px] text-text-quaternary mb-3 text-center">
         Or try one of these examples
       </p>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-        {items.map((item, i) => (
+        {examples.map((item, i) => (
           <motion.button
             key={item}
             initial={{ opacity: 0, y: 8 }}

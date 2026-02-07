@@ -5,7 +5,6 @@ from unittest.mock import AsyncMock
 
 from core.decomposer import Decomposer
 from core.schemas import ConstraintType, ConstraintPriority, DecomposeResult
-from models.schemas import InputMode
 
 
 @pytest.fixture
@@ -39,7 +38,7 @@ class TestDecomposer:
             "difficulty_estimate": "medium",
         }
 
-        result = await decomposer.decompose("What is gravity?", InputMode.QUESTION)
+        result = await decomposer.decompose("What is gravity?")
 
         assert isinstance(result, DecomposeResult)
         assert len(result.constraints) == 2
@@ -54,7 +53,7 @@ class TestDecomposer:
         """Test fallback when tool call returns None."""
         mock_llm.generate_with_tools.return_value = None
 
-        result = await decomposer.decompose("What is gravity?", InputMode.QUESTION)
+        result = await decomposer.decompose("What is gravity?")
 
         assert isinstance(result, DecomposeResult)
         assert len(result.constraints) >= 1
@@ -65,7 +64,7 @@ class TestDecomposer:
         """Test fallback when API call raises."""
         mock_llm.generate_with_tools.side_effect = Exception("API error")
 
-        result = await decomposer.decompose("What is gravity?", InputMode.QUESTION)
+        result = await decomposer.decompose("What is gravity?")
 
         assert isinstance(result, DecomposeResult)
         assert len(result.constraints) >= 1
@@ -83,28 +82,13 @@ class TestDecomposer:
             "difficulty_estimate": "easy",
         }
 
-        result = await decomposer.decompose("Test", InputMode.QUESTION)
+        result = await decomposer.decompose("Test")
         assert len(result.constraints) == 1
         assert result.constraints[0].id == "C1"
 
     @pytest.mark.asyncio
-    async def test_decompose_claim_mode(self, decomposer, mock_llm):
-        """Test decomposition in claim mode."""
-        mock_llm.generate_with_tools.return_value = {
-            "main_task": "Evaluate the claim",
-            "constraints": [
-                {"id": "C1", "type": "accuracy", "description": "Verify claim accuracy", "priority": "high", "verifiable": True},
-            ],
-            "implicit_constraints": [],
-            "difficulty_estimate": "easy",
-        }
-
-        result = await decomposer.decompose("Water boils at 100C", InputMode.CLAIM)
-        assert result.main_task == "Evaluate the claim"
-
-    @pytest.mark.asyncio
-    async def test_decompose_url_mode_with_content(self, decomposer, mock_llm):
-        """Test decomposition in URL mode with scraped content."""
+    async def test_decompose_with_scraped_content(self, decomposer, mock_llm):
+        """Test decomposition with scraped content."""
         mock_llm.generate_with_tools.return_value = {
             "main_task": "Analyze article",
             "constraints": [
@@ -115,6 +99,6 @@ class TestDecomposer:
         }
 
         result = await decomposer.decompose(
-            "https://example.com", InputMode.URL, scraped_content="Article text here"
+            "https://example.com", scraped_content="Article text here"
         )
         assert result.difficulty_estimate == "hard"

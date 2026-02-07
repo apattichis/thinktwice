@@ -108,7 +108,6 @@ class Critic:
         constraints: list[Constraint],
         failing_constraints: list[str],
         input_text: str = "",
-        mode: str = "question",
     ) -> CritiqueResult:
         """Per-constraint critique.
 
@@ -117,7 +116,6 @@ class Critic:
             constraints: List of constraints to evaluate against.
             failing_constraints: Constraint IDs that failed the gate check.
             input_text: Original user input.
-            mode: Input mode string.
 
         Returns:
             CritiqueResult with per-constraint evaluations and claims to verify.
@@ -135,7 +133,6 @@ class Critic:
             constraints=_format_constraints(constraints),
             draft=draft,
             input_text=input_text,
-            mode=mode,
         ) + f"\n\n{structural_measurements}"
 
         logger.info(

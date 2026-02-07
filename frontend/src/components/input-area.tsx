@@ -2,24 +2,15 @@
 
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Loader2, ArrowRight, Search, ShieldCheck, Link } from "lucide-react";
-import { cn } from "@/lib/utils";
-import type { InputMode } from "@/types";
+import { Loader2, ArrowRight } from "lucide-react";
 
 interface InputAreaProps {
-  onSubmit: (input: string, mode: InputMode) => void;
+  onSubmit: (input: string) => void;
   isLoading: boolean;
   initialValue?: string;
 }
 
-const modes: { id: InputMode; label: string; shortLabel: string; icon: typeof Search; description: string }[] = [
-  { id: "question", label: "Ask a Question", shortLabel: "Ask", icon: Search, description: "Ask anything and get a self-verified answer" },
-  { id: "claim", label: "Verify a Claim", shortLabel: "Verify", icon: ShieldCheck, description: "Fact-check a specific statement or claim" },
-  { id: "url", label: "Analyze URL", shortLabel: "URL", icon: Link, description: "Extract and verify claims from a web article" },
-];
-
 export function InputArea({ onSubmit, isLoading, initialValue = "" }: InputAreaProps) {
-  const [mode, setMode] = useState<InputMode>("question");
   const [input, setInput] = useState(initialValue);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -30,7 +21,7 @@ export function InputArea({ onSubmit, isLoading, initialValue = "" }: InputAreaP
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (input.trim() && !isLoading) {
-      onSubmit(input.trim(), mode);
+      onSubmit(input.trim());
     }
   };
 
@@ -41,65 +32,8 @@ export function InputArea({ onSubmit, isLoading, initialValue = "" }: InputAreaP
     }
   };
 
-  const currentMode = modes.find((m) => m.id === mode)!;
-
   return (
     <div style={{ width: "100%", maxWidth: "640px", margin: "0 auto" }}>
-      {/* Segmented Control */}
-      <div style={{ display: "flex", justifyContent: "center", marginBottom: "20px" }}>
-        <div
-          style={{
-            display: "inline-flex",
-            padding: "3px",
-            borderRadius: "10px",
-            background: "rgba(0, 0, 0, 0.06)",
-            backdropFilter: "blur(20px)",
-            WebkitBackdropFilter: "blur(20px)",
-            gap: "2px",
-          }}
-        >
-          {modes.map((m) => (
-            <button
-              key={m.id}
-              onClick={() => setMode(m.id)}
-              className={cn(
-                "relative transition-all duration-200",
-                mode === m.id ? "text-text-primary" : "text-text-tertiary hover:text-text-secondary"
-              )}
-              style={{
-                padding: "8px 18px",
-                fontSize: "14px",
-                fontWeight: 500,
-                borderRadius: "8px",
-                border: "none",
-                cursor: "pointer",
-                background: "transparent",
-                position: "relative",
-                zIndex: 1,
-              }}
-            >
-              {mode === m.id && (
-                <motion.div
-                  layoutId="activeTab"
-                  style={{
-                    position: "absolute",
-                    inset: 0,
-                    background: "rgba(255, 255, 255, 0.85)",
-                    backdropFilter: "blur(20px)",
-                    WebkitBackdropFilter: "blur(20px)",
-                    borderRadius: "8px",
-                    boxShadow: "0 1px 4px rgba(0,0,0,0.08), 0 0.5px 1px rgba(0,0,0,0.06)",
-                  }}
-                  transition={{ type: "spring", bounce: 0.15, duration: 0.4 }}
-                />
-              )}
-              <span style={{ position: "relative", zIndex: 2 }} className="hidden sm:inline">{m.label}</span>
-              <span style={{ position: "relative", zIndex: 2 }} className="sm:hidden">{m.shortLabel}</span>
-            </button>
-          ))}
-        </div>
-      </div>
-
       {/* Input Card */}
       <form onSubmit={handleSubmit}>
         <div className="group">
@@ -115,53 +49,27 @@ export function InputArea({ onSubmit, isLoading, initialValue = "" }: InputAreaP
               boxShadow: "0 2px 16px rgba(0,0,0,0.06), 0 0 1px rgba(0,0,0,0.1)",
             }}
           >
-            {/* Input */}
-            {mode === "url" ? (
-              <input
-                type="url"
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder="https://example.com/article"
-                disabled={isLoading}
-                style={{
-                  width: "100%",
-                  background: "transparent",
-                  padding: "16px 20px",
-                  fontSize: "16px",
-                  color: "#1d1d1f",
-                  border: "none",
-                  outline: "none",
-                  opacity: isLoading ? 0.5 : 1,
-                }}
-              />
-            ) : (
-              <textarea
-                ref={textareaRef}
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder={
-                  mode === "question"
-                    ? "What would you like to know?"
-                    : "Enter a claim to fact-check..."
-                }
-                disabled={isLoading}
-                rows={3}
-                style={{
-                  width: "100%",
-                  background: "transparent",
-                  padding: "16px 20px",
-                  fontSize: "16px",
-                  color: "#1d1d1f",
-                  border: "none",
-                  outline: "none",
-                  resize: "none",
-                  opacity: isLoading ? 0.5 : 1,
-                  fontFamily: "inherit",
-                }}
-              />
-            )}
+            <textarea
+              ref={textareaRef}
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="Ask a question, paste a claim, or enter a URL..."
+              disabled={isLoading}
+              rows={3}
+              style={{
+                width: "100%",
+                background: "transparent",
+                padding: "16px 20px",
+                fontSize: "16px",
+                color: "#1d1d1f",
+                border: "none",
+                outline: "none",
+                resize: "none",
+                opacity: isLoading ? 0.5 : 1,
+                fontFamily: "inherit",
+              }}
+            />
 
             {/* Footer */}
             <div

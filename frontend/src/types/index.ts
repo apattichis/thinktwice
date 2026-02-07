@@ -1,5 +1,3 @@
-export type InputMode = "question" | "claim" | "url";
-
 export type StepName = "draft" | "critique" | "verify" | "refine";
 
 export type StepStatus = "idle" | "running" | "complete" | "error";

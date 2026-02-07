@@ -16,19 +16,16 @@ import { RefineView } from "@/components/refine-view";
 import { FinalAnswerView } from "@/components/final-answer-view";
 import { MetricsBar } from "@/components/metrics-bar";
 import { usePipeline } from "@/hooks/use-pipeline";
-import type { InputMode } from "@/types";
 
 export default function Home() {
   const { state, run } = usePipeline();
   const [inputValue, setInputValue] = useState("");
-  const [activeMode, setActiveMode] = useState<InputMode>("question");
   const [showHowItWorks, setShowHowItWorks] = useState(false);
 
   const handleSubmit = useCallback(
-    (input: string, mode: InputMode) => {
+    (input: string) => {
       setInputValue(input);
-      setActiveMode(mode);
-      run(input, mode);
+      run(input);
     },
     [run]
   );
@@ -127,7 +124,7 @@ export default function Home() {
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
               >
-                <ExamplePrompts mode={activeMode} onSelect={handleExampleSelect} />
+                <ExamplePrompts onSelect={handleExampleSelect} />
               </motion.div>
             )}
           </AnimatePresence>

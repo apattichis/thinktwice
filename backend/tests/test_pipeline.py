@@ -5,7 +5,7 @@ import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 
 from core.pipeline import ThinkTwicePipeline
-from models.schemas import ThinkRequest, InputMode
+from models.schemas import ThinkRequest
 
 
 @pytest.fixture
@@ -76,7 +76,7 @@ class TestPipeline:
             "difficulty_estimate": "easy",
         }
 
-        request = ThinkRequest(input="What is 2+2?", mode=InputMode.QUESTION)
+        request = ThinkRequest(input="What is 2+2?")
         events = []
         async for event in pipeline.execute_pipeline(request):
             events.append(event)
@@ -119,7 +119,7 @@ class TestPipeline:
         ]
         llm.generate_with_tools.side_effect = responses
 
-        request = ThinkRequest(input="What is 2+2?", mode=InputMode.QUESTION)
+        request = ThinkRequest(input="What is 2+2?")
         events = []
         async for event in pipeline.execute_pipeline(request):
             events.append(event)
@@ -161,7 +161,7 @@ class TestPipeline:
         ]
         llm.generate_with_tools.side_effect = responses
 
-        request = ThinkRequest(input="Test", mode=InputMode.QUESTION)
+        request = ThinkRequest(input="Test")
         events = []
         async for event in pipeline.execute_pipeline(request):
             events.append(event)

@@ -2,7 +2,6 @@
 
 import { useState, useCallback, useRef } from "react";
 import type {
-  InputMode,
   PipelineState,
   Critique,
   VerificationResult,
@@ -44,7 +43,7 @@ export function usePipeline() {
     setState((prev) => ({ ...prev, isRunning: false }));
   }, []);
 
-  const run = useCallback(async (input: string, mode: InputMode) => {
+  const run = useCallback(async (input: string) => {
     reset();
     setState((prev) => ({ ...prev, isRunning: true }));
 
@@ -54,7 +53,7 @@ export function usePipeline() {
       const response = await fetch(`${API_BASE}/api/think`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ input, mode }),
+        body: JSON.stringify({ input }),
         signal: abortRef.current.signal,
       });
 
