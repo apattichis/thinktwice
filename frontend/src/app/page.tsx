@@ -68,7 +68,7 @@ export default function Home() {
                       display: "inline-block",
                     }}
                   >
-                    AI-Powered Fact Verification
+                    Agentic Fact Verification
                   </span>
                 </motion.div>
 
@@ -91,13 +91,14 @@ export default function Home() {
                   style={{
                     fontSize: "18px",
                     color: "#6e6e73",
-                    maxWidth: "480px",
+                    maxWidth: "500px",
                     margin: "0 auto",
                     lineHeight: 1.6,
                   }}
                 >
-                  Get answers that are drafted, critiqued, fact-checked against
-                  live sources, and refined. All in real-time.
+                  An AI agent that drafts, self-critiques, fact-checks, and
+                  refines its own answers &mdash; showing its reasoning at
+                  every step.
                 </p>
               </motion.div>
             )}
@@ -218,7 +219,7 @@ export default function Home() {
       <footer>
         <div style={{ maxWidth: "720px", margin: "0 auto", padding: "48px 24px 32px", textAlign: "center" }}>
           <p style={{ fontSize: "12px", color: "#c7c7cc", fontWeight: 400 }}>
-            Powered by FastAPI and Anthropic Claude
+            Agentic pipeline powered by Anthropic Claude
           </p>
         </div>
       </footer>

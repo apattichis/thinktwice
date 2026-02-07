@@ -13,9 +13,9 @@ interface InputAreaProps {
 }
 
 const modes: { id: InputMode; label: string; shortLabel: string; icon: typeof Search; description: string }[] = [
-  { id: "question", label: "Ask a Question", shortLabel: "Ask", icon: Search, description: "Get a verified, fact-checked answer" },
-  { id: "claim", label: "Verify a Claim", shortLabel: "Verify", icon: ShieldCheck, description: "Fact-check any statement" },
-  { id: "url", label: "Analyze URL", shortLabel: "URL", icon: Link, description: "Extract and verify claims from a URL" },
+  { id: "question", label: "Ask a Question", shortLabel: "Ask", icon: Search, description: "Ask anything and get a self-verified answer" },
+  { id: "claim", label: "Verify a Claim", shortLabel: "Verify", icon: ShieldCheck, description: "Fact-check a specific statement or claim" },
+  { id: "url", label: "Analyze URL", shortLabel: "URL", icon: Link, description: "Extract and verify claims from a web article" },
 ];
 
 export function InputArea({ onSubmit, isLoading, initialValue = "" }: InputAreaProps) {
