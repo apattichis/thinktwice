@@ -97,8 +97,8 @@ export default function Home() {
                   }}
                 >
                   An AI agent that drafts, self-critiques, fact-checks, and
-                  refines its own answers &mdash; showing its reasoning at
-                  every step.
+                  refines its own answers. Watch the reasoning unfold in
+                  real time.
                 </p>
               </motion.div>
             )}
