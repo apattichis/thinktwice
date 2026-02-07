@@ -50,15 +50,18 @@ def _extract_paragraph_requirement(text: str) -> int | None:
 
     Handles common patterns like:
     - "exactly 4 paragraphs"
+    - "exactly 4 sections"
+    - "into 3 parts"
     - "should contain 3 paragraphs"
-    - "reply in 5 paragraphs"
-    - "with exactly 2 paragraphs"
     """
-    # Match "exactly N paragraphs" or "N paragraphs" (with word boundary)
+    # Terms that IFEval (and general prompts) use for paragraph-level blocks
+    block_terms = r'(?:paragraph|section|part)s?'
     patterns = [
-        r'exactly\s+(\d+)\s+paragraph',
-        r'contain\s+(\d+)\s+paragraph',
-        r'(\d+)\s+paragraph',
+        rf'exactly\s+(\d+)\s+{block_terms}',
+        rf'contain\s+(\d+)\s+{block_terms}',
+        rf'into\s+(\d+)\s+{block_terms}',
+        rf'(\d+)\s+{block_terms}',
+        rf'at\s+least\s+(\d+)\s+{block_terms}',
     ]
     for pattern in patterns:
         match = re.search(pattern, text)
