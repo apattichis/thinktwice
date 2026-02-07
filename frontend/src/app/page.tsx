@@ -63,11 +63,10 @@ export default function Home() {
                   style={{ marginBottom: "20px" }}
                 >
                   <img
-                    src="/thinktwice-logo.png"
-                    alt="ThinkTwice"
+                    src="/thinktwice-pipeline.png"
+                    alt="ThinkTwice Pipeline"
                     style={{
-                      width: "72px",
-                      height: "72px",
+                      height: "56px",
                       objectFit: "contain",
                       margin: "0 auto",
                     }}
