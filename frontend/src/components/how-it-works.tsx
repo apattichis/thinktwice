@@ -127,9 +127,9 @@ export function HowItWorks({ open, onClose }: HowItWorksProps) {
             alignItems: "center",
             justifyContent: "center",
             padding: "24px",
-            background: "rgba(0, 0, 0, 0.4)",
-            backdropFilter: "blur(8px)",
-            WebkitBackdropFilter: "blur(8px)",
+            background: "rgba(0, 0, 0, 0.2)",
+            backdropFilter: "blur(12px)",
+            WebkitBackdropFilter: "blur(12px)",
           }}
         >
           {/* Modal container */}
