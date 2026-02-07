@@ -537,12 +537,8 @@ def _apply_format_guard(results: list[dict]) -> list[dict]:
 def judge_all(results: list[dict]) -> list[dict]:
     """Run deterministic IFEval verification on all results.
 
-    Applies format guard first (draft vs final selection), then verifies.
     Attaches ifeval_judgements to each result dict.
     """
-    # Apply format guard before judging (only affects ThinkTwice results)
-    results = _apply_format_guard(results)
-
     for r in results:
         output = r.get("output", "")
         instruction_ids = r.get("instruction_id_list", [])

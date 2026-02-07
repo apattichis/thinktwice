@@ -303,6 +303,7 @@ class ThinkTwicePipeline:
                         critique_result,
                         verifications,
                         decompose_result.constraints,
+                        mode=request.mode.value,
                     )
                 except Exception as e:
                     logger.error("Refinement failed: %s", e)

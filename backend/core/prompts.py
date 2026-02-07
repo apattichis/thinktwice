@@ -52,9 +52,18 @@ DRAFT_SYSTEM_PROMPT = """You are a knowledgeable assistant producing a first dra
 CONSTRAINTS TO SATISFY:
 {constraints}
 
-Write a thorough, complete response that addresses ALL high and medium priority constraints.
-This is a first draft — it will be reviewed and refined, so prioritize completeness and accuracy over hedging.
-Do NOT add excessive caveats. Be direct and informative."""
+Write a thorough, complete response that satisfies ALL high and medium priority constraints.
+
+CRITICAL FORMAT RULES:
+- If a constraint specifies an exact count (paragraphs, bullets, sections, words, sentences), match it PRECISELY — not approximately
+- If a constraint requires specific keywords, include every single one verbatim
+- If a constraint requires specific text wrapping (quotes, brackets), apply it exactly
+- If a constraint requires specific case (ALL CAPS, all lowercase), follow it throughout
+- If a constraint requires a specific ending phrase, ensure your response ends with EXACTLY that phrase
+- If a constraint requires placeholders like [name], keep them as abstract placeholders — do NOT fill them in
+- Do NOT add any preamble like "Here's..." or "Sure, here is..." — start directly with the response content
+
+Prioritize CONSTRAINT COMPLIANCE over prose quality. A correct format with average prose is better than beautiful prose that violates constraints."""
 
 DRAFT_MODE_PROMPTS = {
     "question": """Answer the user's question thoroughly and directly while satisfying all the constraints listed above.
@@ -221,6 +230,24 @@ CRITICAL RULES:
 3. DO NOT change the tone, style, or structure unless specifically required
 4. Preserve all strengths identified in the critique
 
+FORMAT PRESERVATION (CRITICAL — violating these is WORSE than not fixing anything):
+- Keep the EXACT number of paragraphs unless a paragraph-count fix is explicitly required
+- Keep ALL square-bracket placeholders like [name] or [placeholder] VERBATIM — do NOT fill them in or resolve them
+- Keep ALL keywords from the original draft — do NOT remove, replace, or rephrase required keywords
+- Keep the EXACT case (uppercase/lowercase) of text unless a case fix is explicitly required
+- Keep quotation wrappers (" or ') if the draft starts/ends with them
+- Keep bullet/list counts unless a bullet-count fix is explicitly required
+- Keep paragraph separators (blank lines, ***, ******) exactly as they appear
+- Do NOT add a preamble (e.g., "Here's...") or closing remark if the draft doesn't have one
+
+BEFORE SUBMITTING: Re-read your refined response and verify you have NOT accidentally:
+- Changed the paragraph count
+- Removed brackets or placeholders
+- Dropped any keywords
+- Changed text case
+- Removed quotation wrappers
+- Added or removed separators
+
 For each change you make, record:
 - What constraint or claim it addresses (target_id)
 - What you changed
@@ -235,7 +262,11 @@ FIX (must address):
 ACKNOWLEDGE (cannot fully fix, note the limitation):
 {acknowledge}
 
-VERDICT LINE (REQUIRED):
+{verdict_section}
+
+You MUST use the submit_refinement tool to provide your refined response."""
+
+SELECTIVE_REFINE_VERDICT_SECTION = """VERDICT LINE (REQUIRED):
 Your refined_response MUST end with exactly one of the following lines:
 - **Verdict: True** — the core claim is factually accurate (minor caveats are acceptable)
 - **Verdict: False** — the core assertion is contradicted by evidence; the central factual claim is wrong
@@ -244,9 +275,9 @@ Your refined_response MUST end with exactly one of the following lines:
 VERDICT DECISION RULE: Base your verdict on the verification results above.
 - If most claims are verified and none refuted → lean True
 - If the core assertion is directly contradicted by evidence → lean False
-- If truth is mixed with oversimplification, embellishment, or missing context → Partial
+- If truth is mixed with oversimplification, embellishment, or missing context → Partial"""
 
-You MUST use the submit_refinement tool to provide your refined response."""
+SELECTIVE_REFINE_NO_VERDICT_SECTION = """NOTE: Do NOT add any verdict line, summary line, or closing remark that wasn't in the original draft. The response should end exactly as the user's instructions require."""
 
 SELECTIVE_REFINE_USER_PROMPT = """ORIGINAL DRAFT:
 {draft}
@@ -300,16 +331,17 @@ TRUST_SYSTEM_PROMPT = """You are a final quality judge. You will compare two ver
 
 Evaluate BOTH versions against the constraints. For each, provide a score (0-100).
 
-Consider:
-- Factual accuracy (weighted heavily)
-- Constraint satisfaction
-- Completeness
-- Clarity and readability
-- Verification results (if claims were refuted in the draft but fixed in refined, that matters)
+Consider (all equally weighted):
+- Constraint satisfaction (does the response follow ALL format, structure, and content requirements?)
+- Factual accuracy (is the information correct?)
+- Completeness (does it address all requirements?)
+- Structural integrity (paragraph counts, bullet counts, keyword presence, text case, placeholders, separators)
+
+IMPORTANT: If the refined version satisfies FEWER constraints than the draft (e.g., removed keywords, changed paragraph count, filled in placeholders, broke text case), choose the DRAFT even if the refined version reads better. Constraint compliance is paramount.
 
 Your decision:
-- "draft": The original draft is actually better (refinement made things worse)
-- "refined": The refined version is better
+- "draft": The original draft is actually better (refinement made things worse or broke constraints)
+- "refined": The refined version is better AND satisfies at least as many constraints
 - "blended": Take the best parts of both (only if clearly beneficial)
 
 If blending, explain which parts come from which version.

@@ -18,7 +18,13 @@ from core.schemas import (
     ChangeRecord,
     RefineResult,
 )
-from core.prompts import SELECTIVE_REFINE_SYSTEM_PROMPT, SELECTIVE_REFINE_USER_PROMPT
+from core.prompts import (
+    SELECTIVE_REFINE_SYSTEM_PROMPT,
+    SELECTIVE_REFINE_USER_PROMPT,
+    SELECTIVE_REFINE_VERDICT_SECTION,
+    SELECTIVE_REFINE_NO_VERDICT_SECTION,
+)
+from core.structural_analysis import analyze, format_for_prompt
 
 logger = logging.getLogger(__name__)
 
@@ -173,6 +179,7 @@ class Refiner:
         critique: CritiqueResult,
         verifications: list[VerificationResult],
         constraints: list[Constraint],
+        mode: str = "claim",
     ) -> RefineResult:
         """Selective refinement.
 
@@ -184,6 +191,7 @@ class Refiner:
             critique: Per-constraint critique result.
             verifications: Dual verification results.
             constraints: Original constraints.
+            mode: Input mode (claim/question/url) — controls verdict section.
 
         Returns:
             RefineResult with refined response and change records.
@@ -192,11 +200,18 @@ class Refiner:
             critique, verifications
         )
 
+        # Only include verdict instructions for claim mode
+        verdict_section = SELECTIVE_REFINE_VERDICT_SECTION if mode == "claim" else SELECTIVE_REFINE_NO_VERDICT_SECTION
+
         system_prompt = SELECTIVE_REFINE_SYSTEM_PROMPT.format(
             strengths=strengths,
             fixes=fixes,
             acknowledge=acknowledge,
+            verdict_section=verdict_section,
         )
+
+        # Programmatic structural measurements (LLMs can't count reliably)
+        structural_measurements = format_for_prompt(analyze(draft))
 
         user_prompt = SELECTIVE_REFINE_USER_PROMPT.format(
             draft=draft,
@@ -205,7 +220,7 @@ class Refiner:
             ),
             verification_results=_format_verifications(verifications),
             constraints=_format_constraints(constraints),
-        )
+        ) + f"\n\n{structural_measurements}"
 
         logger.info("Running selective refinement")
 

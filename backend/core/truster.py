@@ -15,6 +15,7 @@ from core.schemas import (
     TrustResult,
 )
 from core.prompts import TRUST_SYSTEM_PROMPT, TRUST_USER_PROMPT
+from core.structural_analysis import analyze, format_for_prompt
 
 logger = logging.getLogger(__name__)
 
@@ -127,12 +128,16 @@ class Truster:
                 blended=False,
             )
 
+        # Programmatic structural measurements for both versions
+        draft_measurements = format_for_prompt(analyze(original_draft))
+        refined_measurements = format_for_prompt(analyze(refined_output))
+
         user_prompt = TRUST_USER_PROMPT.format(
             constraints=_format_constraints(constraints),
             draft=original_draft,
             refined=refined_output,
             verifications=_format_verifications(verifications),
-        )
+        ) + f"\n\nDRAFT {draft_measurements}\n\nREFINED {refined_measurements}"
 
         logger.info("Running trust-and-rank comparison")
 

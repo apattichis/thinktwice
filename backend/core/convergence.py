@@ -14,6 +14,7 @@ from core.schemas import (
     ConvergenceResult,
 )
 from core.prompts import CONVERGENCE_SYSTEM_PROMPT, CONVERGENCE_USER_PROMPT
+from core.structural_analysis import analyze, format_for_prompt
 
 logger = logging.getLogger(__name__)
 
@@ -100,6 +101,9 @@ class ConvergenceChecker:
         else:
             force_max = False
 
+        # Programmatic structural measurements (LLMs can't count reliably)
+        structural_measurements = format_for_prompt(analyze(refined))
+
         system_prompt = CONVERGENCE_SYSTEM_PROMPT.format(
             threshold=threshold,
             iteration=iteration,
@@ -111,7 +115,7 @@ class ConvergenceChecker:
             refined=refined,
             iteration=iteration,
             max_iterations=max_iterations,
-        )
+        ) + f"\n\n{structural_measurements}"
 
         logger.info(
             "Checking convergence (iteration=%d/%d, threshold=%d)",

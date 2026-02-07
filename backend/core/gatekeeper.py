@@ -10,6 +10,7 @@ from typing import Optional
 from services.llm import LLMService
 from core.schemas import Constraint, ConstraintPriority, SubQuestion, GateResult
 from core.prompts import GATE_SYSTEM_PROMPT, GATE_USER_PROMPT
+from core.structural_analysis import analyze, format_for_prompt
 
 logger = logging.getLogger(__name__)
 
@@ -113,10 +114,13 @@ class Gatekeeper:
             gate_min_pass_pct=int(self.gate_min_pass_rate * 100),
         )
 
+        # Programmatic structural measurements (LLMs can't count reliably)
+        structural_measurements = format_for_prompt(analyze(draft))
+
         user_prompt = GATE_USER_PROMPT.format(
             constraints=_format_constraints(eval_constraints),
             draft=draft,
-        )
+        ) + f"\n\n{structural_measurements}"
 
         logger.info(
             "Running gate check on %d constraints (threshold=%d, min_pass=%.0f%%)",

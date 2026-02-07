@@ -16,6 +16,7 @@ from core.schemas import (
     CritiqueResult,
 )
 from core.prompts import CRITIQUE_SYSTEM_PROMPT, CRITIQUE_USER_PROMPT
+from core.structural_analysis import analyze, format_for_prompt
 
 logger = logging.getLogger(__name__)
 
@@ -123,6 +124,9 @@ class Critic:
         """
         failing_str = ", ".join(failing_constraints) if failing_constraints else "None"
 
+        # Programmatic structural measurements (LLMs can't count reliably)
+        structural_measurements = format_for_prompt(analyze(draft))
+
         system_prompt = CRITIQUE_SYSTEM_PROMPT.format(
             failing_constraints=failing_str,
         )
@@ -132,7 +136,7 @@ class Critic:
             draft=draft,
             input_text=input_text,
             mode=mode,
-        )
+        ) + f"\n\n{structural_measurements}"
 
         logger.info(
             "Running critique on %d constraints (%d failing)",
