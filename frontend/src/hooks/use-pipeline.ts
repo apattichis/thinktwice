@@ -353,11 +353,13 @@ export function usePipeline() {
         }
 
         case "pipeline_complete": {
-          const metrics = data as unknown as PipelineMetrics;
+          const { final_output, ...rest } = data;
+          const metrics = rest as unknown as PipelineMetrics;
           setState((prev) => ({
             ...prev,
             isRunning: false,
             metrics,
+            finalOutput: final_output as string | undefined,
           }));
           break;
         }

@@ -6,10 +6,13 @@ import { Header } from "@/components/header";
 import { InputArea } from "@/components/input-area";
 import { ExamplePrompts } from "@/components/example-prompts";
 import { PipelineStepper } from "@/components/pipeline-stepper";
+import { DecomposeView } from "@/components/decompose-view";
 import { DraftView } from "@/components/draft-view";
+import { GateView } from "@/components/gate-view";
 import { CritiqueView } from "@/components/critique-view";
 import { VerifyView } from "@/components/verify-view";
 import { RefineView } from "@/components/refine-view";
+import { FinalAnswerView } from "@/components/final-answer-view";
 import { MetricsBar } from "@/components/metrics-bar";
 import { usePipeline } from "@/hooks/use-pipeline";
 import type { InputMode } from "@/types";
@@ -173,8 +176,11 @@ export default function Home() {
                   iteration={state.currentIteration}
                 />
 
-                <div style={{ display: "flex", flexDirection: "column", gap: "12px", marginTop: "24px" }}>
+                {/* Reasoning trace */}
+                <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginTop: "24px" }}>
+                  <DecomposeView state={state.decompose} />
                   <DraftView state={state.draft} />
+                  <GateView state={state.gate} />
                   {state.critique.status !== "idle" && (
                     <CritiqueView state={state.critique} />
                   )}
@@ -186,8 +192,19 @@ export default function Home() {
                   )}
                 </div>
 
-                {state.metrics && (
+                {/* Final answer */}
+                {state.finalOutput && (
                   <div style={{ marginTop: "24px" }}>
+                    <FinalAnswerView
+                      content={state.finalOutput}
+                      trustDecision={state.trust.decision}
+                      metrics={state.metrics}
+                    />
+                  </div>
+                )}
+
+                {state.metrics && (
+                  <div style={{ marginTop: "16px" }}>
                     <MetricsBar metrics={state.metrics} />
                   </div>
                 )}

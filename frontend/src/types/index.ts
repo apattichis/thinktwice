@@ -136,4 +136,5 @@ export interface PipelineState {
   trust: TrustState;
   constraintVerdicts: ConstraintEvaluation[];
   metrics?: PipelineMetrics;
+  finalOutput?: string;
 }
