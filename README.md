@@ -33,6 +33,14 @@ flowchart LR
 ```
 
 <details>
+<summary><strong>Can't see the diagram? (GitHub mobile)</strong></summary>
+<br>
+<p align="center">
+  <img src="pictures/pipeline-overview.png" alt="Pipeline Overview" width="800">
+</p>
+</details>
+
+<details>
 <summary><strong>Expand: What each phase does</strong></summary>
 
 <br>
@@ -96,6 +104,14 @@ flowchart TB
     Enforce["<b>Structural Enforcer</b><br>Paragraph count → First word<br>→ Bullets → Start phrase"]
     Enforce --> Output([Final Output])
 ```
+
+<details>
+<summary><strong>Can't see the diagram? (GitHub mobile)</strong></summary>
+<br>
+<p align="center">
+  <img src="pictures/pipeline-detailed.png" alt="Detailed Pipeline Architecture" width="500">
+</p>
+</details>
 
 </details>
 
@@ -163,6 +179,14 @@ pie title Improvement Sources (+13.3pp total)
     "Constraint-aware drafting" : 50
     "Deterministic enforcement" : 50
 ```
+
+<details>
+<summary><strong>Can't see the diagram? (GitHub mobile)</strong></summary>
+<br>
+<p align="center">
+  <img src="pictures/improvement-sources.png" alt="Improvement Sources" width="500">
+</p>
+</details>
 
 The **structural enforcer** fires on ~50% of all samples — meaning even with constraint-aware prompting, LLMs still can't count reliably half the time. The enforcer fixes paragraph counts, prepends missing first words, and formats constrained responses using pure string manipulation (no API calls, deterministic, cheap).
 
