@@ -96,9 +96,9 @@ export default function Home() {
                     lineHeight: 1.6,
                   }}
                 >
-                  An AI agent that drafts, self-critiques, fact-checks, and refines its own answers.
+                  An AI agent that drafts, critiques, verifies, and refines its own answers.
                   <br />
-                  Watch the reasoning unfold in real time.
+                  Watch every step of the reasoning in real time.
                 </p>
               </motion.div>
             )}
