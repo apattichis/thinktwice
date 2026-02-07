@@ -398,7 +398,7 @@ function DecomposeDetail({ state }: { state: PipelineState }) {
           >
             {typeLabels[c.type] || c.type}
           </span>
-          <span className="text-[#6e6e73] truncate max-w-[220px]">{c.text}</span>
+          <span className="text-[#6e6e73]">{c.text}</span>
         </span>
       ))}
     </div>
