@@ -6,15 +6,8 @@ import { Header } from "@/components/header";
 import { InputArea } from "@/components/input-area";
 import { ExamplePrompts } from "@/components/example-prompts";
 import { HowItWorks } from "@/components/how-it-works";
-import { PipelineStepper } from "@/components/pipeline-stepper";
-import { DecomposeView } from "@/components/decompose-view";
-import { DraftView } from "@/components/draft-view";
-import { GateView } from "@/components/gate-view";
-import { CritiqueView } from "@/components/critique-view";
-import { VerifyView } from "@/components/verify-view";
-import { RefineView } from "@/components/refine-view";
+import { ThinkingTrace } from "@/components/thinking-trace";
 import { FinalAnswerView } from "@/components/final-answer-view";
-import { MetricsBar } from "@/components/metrics-bar";
 import { usePipeline } from "@/hooks/use-pipeline";
 
 export default function Home() {
@@ -156,49 +149,11 @@ export default function Home() {
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                style={{ marginTop: "48px" }}
+                style={{ marginTop: "32px" }}
               >
-                <PipelineStepper
-                  statuses={{
-                    decompose: state.decompose.status,
-                    draft: state.draft.status,
-                    gate: state.gate.status,
-                    critique: state.critique.status,
-                    verify: state.verify.status,
-                    refine: state.refine.status,
-                    trust: state.trust.status,
-                  }}
-                  durations={{
-                    decompose: state.decompose.duration_ms,
-                    draft: state.draft.duration_ms,
-                    gate: state.gate.duration_ms,
-                    critique: state.critique.duration_ms,
-                    verify: state.verify.duration_ms,
-                    refine: state.refine.duration_ms,
-                    trust: state.trust.duration_ms,
-                  }}
-                  iteration={state.currentIteration}
-                />
-
-                {/* Reasoning trace */}
-                <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginTop: "24px" }}>
-                  <DecomposeView state={state.decompose} />
-                  <DraftView state={state.draft} />
-                  <GateView state={state.gate} />
-                  {state.critique.status !== "idle" && (
-                    <CritiqueView state={state.critique} />
-                  )}
-                  {state.verify.status !== "idle" && (
-                    <VerifyView state={state.verify} />
-                  )}
-                  {state.refine.status !== "idle" && (
-                    <RefineView state={state.refine} critiqueState={state.critique} />
-                  )}
-                </div>
-
-                {/* Final answer */}
+                {/* Final answer — appears at TOP when ready */}
                 {state.finalOutput && (
-                  <div style={{ marginTop: "24px" }}>
+                  <div style={{ marginBottom: "16px" }}>
                     <FinalAnswerView
                       content={state.finalOutput}
                       trustDecision={state.trust.decision}
@@ -207,11 +162,8 @@ export default function Home() {
                   </div>
                 )}
 
-                {state.metrics && (
-                  <div style={{ marginTop: "16px" }}>
-                    <MetricsBar metrics={state.metrics} />
-                  </div>
-                )}
+                {/* Thinking trace — accordion of steps */}
+                <ThinkingTrace state={state} />
               </motion.div>
             )}
           </AnimatePresence>

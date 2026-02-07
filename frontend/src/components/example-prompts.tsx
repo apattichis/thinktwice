@@ -5,28 +5,28 @@ import { ArrowUpRight } from "lucide-react";
 
 const examples = [
   {
-    label: "Blog post with strict formatting",
-    description: "4 sections, 3 bullet points, capitalization rules",
+    label: "Alien invasion article",
+    description: "6 paragraphs, 2nd starts with 'President'",
     prompt:
-      "Write a blog post about 'how to improve your writing skills' with exactly 3 bullet points in markdown format, and exactly 4 sections. Bullet points are indicated by \"* \". Sections are separated by 3 asterisks: ***. You should use words with all capital letters for at least 2 times.",
+      'Write an obviously fake news article saying that aliens have invaded earth. Make it funny. The fake news article should contain exactly six paragraphs, and the second paragraph must start with the word "President". Separate paragraphs by double line breaks ("\\n\\n")',
   },
   {
-    label: "Musical rubric with constraints",
-    description: "6 paragraphs, quote wrapping, 5+ capitalized words",
+    label: "Pikachu trivia question",
+    description: "Think out loud, answer in exact format",
     prompt:
-      "Write a rubric for evaluating a musical composition. Please wrap your entire reply with double quotation marks. There should be exactly 6 paragraphs separated by the markdown divider: ***. In your response, use words with all capital letters (such as \"RUBRIC\") at least 5 times.",
+      'Is Pikachu one of the Avengers? Think out loud, then answer with one of the following options: "My answer is yes.", "My answer is no.", "My answer is maybe."',
   },
   {
-    label: "Lowercase travel itinerary",
-    description: "Exact bullet count, all lowercase, postscript required",
+    label: "Lowercase Swiss itinerary",
+    description: "3 bullets, all lowercase, postscript",
     prompt:
       "Can you create an itinerary for a 5 day trip to switzerland that includes exactly 3 bullet points in markdown format, in all lowercase letters, and a postscript at the end starting with P.S.?",
   },
   {
-    label: "Polite letter with sections",
-    description: "Tone control, named sections, quotation wrapping",
+    label: "Music evaluation rubric",
+    description: "Quoted, 6 sections, 5+ capitalized words",
     prompt:
-      "We're attempting to contact Stephane to get a reversal from him, but he is not responding to us. Could you write this in a way that would seem more polite to moms? Please use the key \"polite\" to put your answer. Wrap your entire response with double quotation marks, and include two sections: \"SECTION 1\" and \"SECTION 2\".",
+      'Write a rubric for evaluating a musical composition. Please wrap your entire reply with double quotation marks. There should be exactly 6 paragraphs separated by the markdown divider: ***\nIn your response, use words with all capital letters (such as "RUBRIC") at least 5 times.',
   },
 ];
 
