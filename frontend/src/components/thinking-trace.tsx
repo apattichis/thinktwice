@@ -188,7 +188,8 @@ export function ThinkingTrace({ state }: ThinkingTraceProps) {
       {/* Header — "Thinking..." or "View reasoning" */}
       <button
         onClick={() => setTraceOpen(!traceOpen)}
-        className="w-full flex items-center gap-2.5 px-6 py-3.5 cursor-pointer hover:bg-black/[0.02] transition-colors"
+        className="w-full flex items-center gap-2.5 cursor-pointer hover:bg-black/[0.02] transition-colors"
+        style={{ padding: "14px 28px" }}
       >
         <motion.div
           animate={{ rotate: traceOpen ? 90 : 0 }}
@@ -274,9 +275,10 @@ function StepRow({ config, state, isExpanded, onToggle }: StepRowProps) {
       <button
         onClick={hasDetails ? onToggle : undefined}
         className={cn(
-          "w-full flex items-center gap-3 px-6 py-3",
+          "w-full flex items-center gap-3",
           hasDetails && "cursor-pointer hover:bg-black/[0.02] transition-colors"
         )}
+        style={{ padding: "12px 28px" }}
       >
         {/* Status icon */}
         <div className="w-4 h-4 flex items-center justify-center shrink-0">
@@ -342,7 +344,7 @@ function StepRow({ config, state, isExpanded, onToggle }: StepRowProps) {
             transition={{ duration: 0.25 }}
             className="overflow-hidden"
           >
-            <div className="pb-5 pt-2" style={{ paddingLeft: "52px", paddingRight: "36px" }}>
+            <div className="pb-5 pt-2" style={{ paddingLeft: "56px", paddingRight: "36px" }}>
               <StepDetail stepKey={config.key} state={state} />
             </div>
           </motion.div>
