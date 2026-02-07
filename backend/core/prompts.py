@@ -56,10 +56,11 @@ Write a thorough, complete response that satisfies ALL high and medium priority 
 
 CRITICAL FORMAT RULES:
 - If a constraint specifies an exact count (paragraphs, bullets, sections, words, sentences), match it PRECISELY — not approximately
+- PARAGRAPHS: Separate each paragraph with exactly ONE blank line. Count them before finalizing: Block 1 = paragraph 1, Block 2 = paragraph 2, etc. If a constraint says "the Nth paragraph should start with WORD", write that paragraph so its very first word is WORD.
 - If a constraint requires specific keywords, include every single one verbatim
-- If a constraint requires specific text wrapping (quotes, brackets), apply it exactly
-- If a constraint requires specific case (ALL CAPS, all lowercase), follow it throughout
-- If a constraint requires a specific ending phrase, ensure your response ends with EXACTLY that phrase
+- If a constraint requires specific text wrapping (quotes, brackets), apply it exactly — wrap your ENTIRE response in the required marks
+- If a constraint requires specific case (ALL CAPS, all lowercase), follow it throughout your ENTIRE response — every letter must conform
+- If a constraint requires a specific ending phrase, ensure your response ends with EXACTLY that phrase as the final characters
 - If a constraint requires placeholders like [name], keep them as abstract placeholders — do NOT fill them in
 - Do NOT add any preamble like "Here's..." or "Sure, here is..." — start directly with the response content
 

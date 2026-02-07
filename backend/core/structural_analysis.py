@@ -141,3 +141,50 @@ def format_for_prompt(analysis: dict) -> str:
         lines.append(f"  Letter frequencies: {freq_str}")
 
     return "\n".join(lines)
+
+
+def format_delta(draft_analysis: dict, refined_analysis: dict) -> str:
+    """Format structural differences between draft and refined for the Trust step.
+
+    Highlights ONLY properties that changed, making degradation immediately visible.
+    """
+    checks = [
+        ("Paragraphs", "paragraph_count"),
+        ("Words", "word_count"),
+        ("Sentences", "sentence_count"),
+        ("Bullet/list items", "bullet_count"),
+        ("Square-bracket placeholders", "placeholder_count"),
+        ("Highlighted sections", "highlight_count"),
+        ("ALL-CAPS words", "all_caps_word_count"),
+        ("Section headers", "section_header_count"),
+    ]
+    bool_checks = [
+        ("Starts with quotation mark", "starts_with_quote"),
+        ("Ends with quotation mark", "ends_with_quote"),
+        ("All uppercase", "all_uppercase"),
+        ("All lowercase", "all_lowercase"),
+        ("Has postscript (P.S.)", "has_postscript"),
+        ("Has ****** separator", "has_six_star_separator"),
+        ("Contains commas", "has_comma"),
+    ]
+
+    changes = []
+    for label, key in checks:
+        d_val = draft_analysis.get(key, 0)
+        r_val = refined_analysis.get(key, 0)
+        if d_val != r_val:
+            direction = "INCREASED" if r_val > d_val else "DECREASED"
+            changes.append(f"  {label}: {d_val} -> {r_val} ({direction})")
+
+    for label, key in bool_checks:
+        d_val = draft_analysis.get(key, False)
+        r_val = refined_analysis.get(key, False)
+        if d_val != r_val:
+            d_str = "Yes" if d_val else "No"
+            r_str = "Yes" if r_val else "No"
+            changes.append(f"  {label}: {d_str} -> {r_str} (CHANGED)")
+
+    if not changes:
+        return "STRUCTURAL DELTA: No structural changes detected."
+
+    return "STRUCTURAL DELTA (draft -> refined):\n" + "\n".join(changes)

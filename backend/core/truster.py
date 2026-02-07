@@ -15,7 +15,7 @@ from core.schemas import (
     TrustResult,
 )
 from core.prompts import TRUST_SYSTEM_PROMPT, TRUST_USER_PROMPT
-from core.structural_analysis import analyze, format_for_prompt
+from core.structural_analysis import analyze, format_for_prompt, format_delta
 
 logger = logging.getLogger(__name__)
 
@@ -91,6 +91,66 @@ def _format_verifications(verifications: list[VerificationResult]) -> str:
     return "\n".join(lines)
 
 
+def _check_structural_override(
+    draft_analysis: dict,
+    refined_analysis: dict,
+    constraints: list[Constraint],
+) -> str | None:
+    """Check if refinement degraded structural properties that constraints require.
+
+    Returns a reason string if override to draft is warranted, None otherwise.
+    This is a general-purpose check — not tied to any specific benchmark.
+    """
+    # Build a lowercase string of all constraint descriptions for keyword search
+    all_constraints = " ".join(c.description.lower() for c in constraints)
+
+    # Check: quotation wrapping lost
+    if (draft_analysis["starts_with_quote"] and draft_analysis["ends_with_quote"]
+            and not (refined_analysis["starts_with_quote"] and refined_analysis["ends_with_quote"])):
+        if any(kw in all_constraints for kw in ["quotation", "quote", "wrap"]):
+            return "quotation wrapping lost"
+
+    # Check: placeholders decreased
+    if draft_analysis["placeholder_count"] > refined_analysis["placeholder_count"]:
+        if any(kw in all_constraints for kw in ["placeholder", "bracket", "[", "square"]):
+            return "placeholders decreased"
+
+    # Check: all-uppercase lost
+    if draft_analysis["all_uppercase"] and not refined_analysis["all_uppercase"]:
+        if any(kw in all_constraints for kw in ["capital", "uppercase", "upper case"]):
+            return "uppercase lost"
+
+    # Check: all-lowercase lost
+    if draft_analysis["all_lowercase"] and not refined_analysis["all_lowercase"]:
+        if any(kw in all_constraints for kw in ["lowercase", "lower case", "lower"]):
+            return "lowercase lost"
+
+    # Check: ALL-CAPS word count decreased significantly
+    draft_caps = draft_analysis["all_caps_word_count"]
+    refined_caps = refined_analysis["all_caps_word_count"]
+    if draft_caps > 0 and refined_caps < draft_caps * 0.5:
+        if any(kw in all_constraints for kw in ["capital", "caps", "uppercase"]):
+            return "capitalized words decreased"
+
+    # Check: postscript lost
+    if draft_analysis["has_postscript"] and not refined_analysis["has_postscript"]:
+        if any(kw in all_constraints for kw in ["postscript", "p.s."]):
+            return "postscript lost"
+
+    # Check: six-star separator lost
+    if draft_analysis["has_six_star_separator"] and not refined_analysis["has_six_star_separator"]:
+        if any(kw in all_constraints for kw in ["******", "separator", "two responses"]):
+            return "separator lost"
+
+    # Check: comma presence changed when constraint mentions commas
+    if draft_analysis["has_comma"] != refined_analysis["has_comma"]:
+        if "comma" in all_constraints:
+            if not draft_analysis["has_comma"] and refined_analysis["has_comma"]:
+                return "commas introduced"
+
+    return None
+
+
 class Truster:
     """Compares draft vs refined output and selects the winner."""
 
@@ -129,15 +189,18 @@ class Truster:
             )
 
         # Programmatic structural measurements for both versions
-        draft_measurements = format_for_prompt(analyze(original_draft))
-        refined_measurements = format_for_prompt(analyze(refined_output))
+        draft_analysis = analyze(original_draft)
+        refined_analysis = analyze(refined_output)
+        draft_measurements = format_for_prompt(draft_analysis)
+        refined_measurements = format_for_prompt(refined_analysis)
+        structural_delta = format_delta(draft_analysis, refined_analysis)
 
         user_prompt = TRUST_USER_PROMPT.format(
             constraints=_format_constraints(constraints),
             draft=original_draft,
             refined=refined_output,
             verifications=_format_verifications(verifications),
-        ) + f"\n\nDRAFT {draft_measurements}\n\nREFINED {refined_measurements}"
+        ) + f"\n\n{structural_delta}\n\nDRAFT {draft_measurements}\n\nREFINED {refined_measurements}"
 
         logger.info("Running trust-and-rank comparison")
 
@@ -170,8 +233,30 @@ class Truster:
                 winner = "refined" if refined_score >= draft_score else "draft"
                 blended = False
                 final_output = refined_output if winner == "refined" else original_draft
-            else:
+            elif blended:
+                # Blended: must use LLM's combined output
                 final_output = result.get("final_output", refined_output)
+            else:
+                # Non-blended: use EXACT original text to prevent LLM
+                # reproduction artifacts (stripped quotes, altered formatting)
+                if winner == "draft":
+                    final_output = original_draft
+                else:
+                    final_output = refined_output
+
+            # Structural safety net: if the chosen output lost structural
+            # properties that the draft had and constraints mention, override
+            if winner != "draft" and not blended:
+                override_reason = _check_structural_override(
+                    draft_analysis, refined_analysis, constraints
+                )
+                if override_reason:
+                    logger.info(
+                        "Structural override: %s -> draft (%s)",
+                        winner, override_reason,
+                    )
+                    winner = "draft"
+                    final_output = original_draft
 
             trust_result = TrustResult(
                 winner=winner,
