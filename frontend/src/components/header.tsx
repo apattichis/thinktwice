@@ -25,20 +25,9 @@ export function Header({ showHowItWorks, onHowItWorks }: HeaderProps) {
       <div style={{ maxWidth: "960px", margin: "0 auto", padding: "0 24px" }}>
         <div style={{ display: "flex", height: "52px", alignItems: "center", justifyContent: "space-between" }}>
           {/* Logo */}
-          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-            <img
-              src="/thinktwice-logo.png"
-              alt="ThinkTwice"
-              style={{
-                width: "35px",
-                height: "35px",
-                objectFit: "contain",
-              }}
-            />
-            <span style={{ fontSize: "16px", fontWeight: 600, letterSpacing: "-0.02em", color: "#1d1d1f" }}>
-              ThinkTwice
-            </span>
-          </div>
+          <span style={{ fontSize: "16px", fontWeight: 600, letterSpacing: "-0.02em", color: "#1d1d1f" }}>
+            ThinkTwice
+          </span>
 
           {/* Nav */}
           <nav style={{ display: "flex", alignItems: "center", gap: "4px" }}>

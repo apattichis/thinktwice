@@ -57,6 +57,24 @@ export default function Home() {
                 style={{ textAlign: "center", marginBottom: "40px", paddingTop: "48px" }}
               >
                 <motion.div
+                  initial={{ scale: 0.9, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ delay: 0.04, type: "spring", bounce: 0.2, duration: 0.5 }}
+                  style={{ marginBottom: "20px" }}
+                >
+                  <img
+                    src="/thinktwice-logo.png"
+                    alt="ThinkTwice"
+                    style={{
+                      width: "72px",
+                      height: "72px",
+                      objectFit: "contain",
+                      margin: "0 auto",
+                    }}
+                  />
+                </motion.div>
+
+                <motion.div
                   initial={{ scale: 0.95, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}
                   transition={{ delay: 0.08 }}
