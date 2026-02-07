@@ -5,8 +5,8 @@
 <p align="center">
   <strong>A self-correcting AI pipeline that decomposes constraints, iteratively verifies against live sources, and deterministically enforces what LLMs can't.</strong>
 </p>
----
 
+---
 ## How It Works
 
 ThinkTwice wraps any LLM call in an 8-phase self-correction loop. Instead of hoping the model gets it right on the first try, it decomposes the request into atomic constraints, drafts a response, gates easy prompts through a fast path, and iteratively critiques, verifies, and refines until constraints converge — then deterministically enforces structural requirements that LLMs fundamentally cannot self-enforce (counting paragraphs, placing specific first words, formatting responses).
