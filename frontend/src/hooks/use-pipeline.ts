@@ -109,7 +109,14 @@ export function usePipeline() {
     function handleEvent(event: string, data: Record<string, unknown>) {
       switch (event) {
         case "decompose_complete": {
-          const constraints = (data.constraints as Constraint[]) || [];
+          const constraints = ((data.constraints as Record<string, unknown>[]) || []).map(
+            (c): Constraint => ({
+              id: c.id as string,
+              text: (c.description as string) || (c.text as string) || "",
+              type: c.type as string,
+              priority: c.priority as string,
+            })
+          );
           setState((prev) => ({
             ...prev,
             decompose: {
@@ -122,7 +129,12 @@ export function usePipeline() {
         }
 
         case "gate_decision": {
-          const decision = data as unknown as GateDecision;
+          const decision: GateDecision = {
+            decision: (data.gate_decision as string as "skip" | "refine") || (data.decision as "skip" | "refine"),
+            confidence: (data.gate_confidence as number) ?? (data.confidence as number) ?? 0,
+            sub_questions: (data.sub_questions as GateDecision["sub_questions"]) || [],
+            reason: (data.reason as string) || "",
+          };
           setState((prev) => ({
             ...prev,
             gate: {
@@ -135,7 +147,14 @@ export function usePipeline() {
         }
 
         case "constraint_verdict": {
-          const evaluation = data as unknown as ConstraintEvaluation;
+          const verdictStr = data.verdict as string;
+          const evaluation: ConstraintEvaluation = {
+            constraint_id: data.constraint_id as string,
+            constraint_text: (data.constraint_text as string) || (data.description as string) || "",
+            verdict: (verdictStr === "partially_satisfied" ? "partial" : verdictStr) as ConstraintEvaluation["verdict"],
+            confidence: (data.confidence as number) ?? 0,
+            explanation: (data.feedback as string) || (data.explanation as string) || "",
+          };
           setState((prev) => ({
             ...prev,
             constraintVerdicts: [...prev.constraintVerdicts, evaluation],
@@ -144,14 +163,8 @@ export function usePipeline() {
         }
 
         case "self_verify_claim": {
-          const result = data as unknown as VerificationResult;
-          setState((prev) => ({
-            ...prev,
-            verify: {
-              ...prev.verify,
-              results: [...prev.verify.results, result],
-            },
-          }));
+          // Self-verification is supplementary — verify_claim already has the combined verdict.
+          // Skip adding a duplicate entry.
           break;
         }
 
@@ -175,7 +188,12 @@ export function usePipeline() {
         }
 
         case "trust_decision": {
-          const decision = data as unknown as TrustDecision;
+          const decision: TrustDecision = {
+            winner: data.winner as "draft" | "refined",
+            draft_score: (data.draft_score as number) ?? 0,
+            refined_score: (data.refined_score as number) ?? 0,
+            reason: (data.reasoning as string) || (data.reason as string) || "",
+          };
           setState((prev) => ({
             ...prev,
             trust: {
@@ -257,11 +275,32 @@ export function usePipeline() {
               },
             }));
           } else if (step === "critique") {
+            const raw = data.content as Record<string, unknown> | undefined;
+            const critique: Critique | undefined = raw
+              ? {
+                  issues: (
+                    (raw.constraint_evaluations as Record<string, unknown>[]) || []
+                  )
+                    .filter((ev) => ev.verdict !== "satisfied")
+                    .map((ev) => ({
+                      description:
+                        (ev.feedback as string) ||
+                        `Constraint ${ev.constraint_id}: ${ev.verdict}`,
+                      severity: (ev.verdict === "violated" ? "high" : "medium") as "high" | "medium" | "low",
+                      quote: ev.evidence_quote as string | undefined,
+                    })),
+                  strengths: (raw.strengths_to_preserve as string[]) || [],
+                  claims_to_verify: (
+                    (raw.claims_to_verify as Array<Record<string, unknown> | string>) || []
+                  ).map((c) => (typeof c === "string" ? c : (c.claim as string))),
+                  confidence: (raw.overall_confidence as number) ?? 0,
+                }
+              : undefined;
             setState((prev) => ({
               ...prev,
               critique: {
                 status: "complete",
-                data: data.content as Critique,
+                data: critique,
                 duration_ms: data.duration_ms as number,
               },
             }));
@@ -276,13 +315,17 @@ export function usePipeline() {
               },
             }));
           } else if (step === "refine") {
+            const rawChanges = (data.changes_made as Array<Record<string, unknown> | string>) || [];
+            const changes = rawChanges.map((ch) =>
+              typeof ch === "string" ? ch : (ch.change as string) || `${ch.type}: ${ch.target_id}`
+            );
             setState((prev) => ({
               ...prev,
               refine: {
                 status: "complete",
                 content: (data.content as string) || prev.refine.content,
-                confidence: data.confidence as number,
-                changes_made: (data.changes_made as string[]) || [],
+                confidence: (data.confidence as number) ?? (data.confidence_after as number),
+                changes_made: changes,
                 duration_ms: data.duration_ms as number,
               },
             }));
@@ -291,7 +334,14 @@ export function usePipeline() {
         }
 
         case "verify_claim": {
-          const result = data as unknown as VerificationResult;
+          const result: VerificationResult = {
+            claim: data.claim as string,
+            verdict: ((data.combined_verdict as string) || (data.verdict as string)) as VerificationResult["verdict"],
+            source: (data.web_source as string) || (data.source as string),
+            source_title: data.source_title as string | undefined,
+            explanation: (data.web_explanation as string) || (data.explanation as string) || "",
+            web_verified: (data.web_verified as boolean) ?? true,
+          };
           setState((prev) => ({
             ...prev,
             verify: {
