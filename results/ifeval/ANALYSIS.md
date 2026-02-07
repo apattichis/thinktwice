@@ -21,6 +21,8 @@ The pipeline's advantage comes from two complementary mechanisms:
 
 ### 2.1 Four-Metric Comparison
 
+![IFEval: Instruction-Following Accuracy](charts/ifeval_comparison.png)
+
 | Metric | Single-Shot | ThinkTwice | Delta |
 |--------|:-----------:|:----------:|:-----:|
 | **Prompt Strict Acc** | 71.7% (86/120) | 85.0% (102/120) | **+13.3pp** |
@@ -46,6 +48,8 @@ The pipeline's advantage comes from two complementary mechanisms:
 ## 3. Per-Instruction-Type Analysis
 
 ### 3.1 Full Breakdown (ThinkTwice)
+
+![IFEval: Per-Instruction-Type Accuracy](charts/ifeval_types.png)
 
 | Instruction Type | Strict Acc | Loose Acc | Count |
 |-----------------|:---------:|:--------:|:-----:|
@@ -145,6 +149,8 @@ The enforcers are applied in a specific order (start phrase → paragraphs → f
 
 ### 5.3 Accuracy by Instruction Count
 
+![IFEval: Accuracy by Instruction Count](charts/ifeval_counts.png)
+
 | Instructions per Prompt | Strict Acc | Loose Acc | Count |
 |:-----------------------:|:---------:|:--------:|:-----:|
 | 1 | 96% | 97% | 68 |
@@ -158,6 +164,8 @@ The apparent anomaly of 3-instruction (75%) outperforming 2-instruction (70%) is
 ---
 
 ## 6. Latency Analysis
+
+![IFEval: Latency Comparison](charts/ifeval_latency.png)
 
 | Statistic | Single-Shot | ThinkTwice | Ratio |
 |-----------|:-----------:|:----------:|:-----:|
