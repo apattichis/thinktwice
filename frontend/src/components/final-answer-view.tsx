@@ -22,7 +22,7 @@ export function FinalAnswerView({ content, trustDecision, metrics }: FinalAnswer
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, ease: "easeOut" }}
-      className="rounded-2xl overflow-hidden"
+      className="rounded-xl overflow-hidden"
       style={{
         background: "rgba(255, 255, 255, 0.75)",
         backdropFilter: "blur(40px) saturate(200%)",
@@ -32,7 +32,7 @@ export function FinalAnswerView({ content, trustDecision, metrics }: FinalAnswer
       }}
     >
       {/* Header */}
-      <div className="px-6 pt-5 pb-3 flex items-center gap-3">
+      <div className="px-8 pt-6 pb-3 flex items-center gap-3">
         <div
           className="w-7 h-7 rounded-lg flex items-center justify-center"
           style={{
@@ -51,7 +51,7 @@ export function FinalAnswerView({ content, trustDecision, metrics }: FinalAnswer
       </div>
 
       {/* Content */}
-      <div className="px-6 pb-5">
+      <div className="px-8 pb-6">
         <div className="prose max-w-none prose-p:text-[15px] prose-p:leading-relaxed prose-p:text-[#1d1d1f] prose-headings:text-[#1d1d1f] prose-li:text-[#1d1d1f] prose-strong:text-[#1d1d1f]">
           <ReactMarkdown>{content}</ReactMarkdown>
         </div>
@@ -60,7 +60,7 @@ export function FinalAnswerView({ content, trustDecision, metrics }: FinalAnswer
       {/* Metrics footer */}
       {metrics && (
         <div
-          className="px-6 py-3 flex flex-wrap items-center gap-x-5 gap-y-2"
+          className="px-8 py-3.5 flex flex-wrap items-center gap-x-5 gap-y-2"
           style={{
             borderTop: "1px solid rgba(0,0,0,0.04)",
           }}
