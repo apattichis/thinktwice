@@ -173,7 +173,7 @@ export function ThinkingTrace({ state }: ThinkingTraceProps) {
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={spring}
-      className="rounded-2xl overflow-hidden"
+      className="rounded-xl overflow-hidden"
       style={{
         background: "rgba(255, 255, 255, 0.55)",
         backdropFilter: "blur(30px) saturate(180%)",
@@ -184,7 +184,7 @@ export function ThinkingTrace({ state }: ThinkingTraceProps) {
       {/* Header — "Thinking..." or "View reasoning" */}
       <button
         onClick={() => setTraceOpen(!traceOpen)}
-        className="w-full flex items-center gap-2.5 px-5 py-3 cursor-pointer hover:bg-black/[0.02] transition-colors"
+        className="w-full flex items-center gap-2.5 px-5 py-3.5 cursor-pointer hover:bg-black/[0.02] transition-colors"
       >
         <motion.div
           animate={{ rotate: traceOpen ? 90 : 0 }}
@@ -270,7 +270,7 @@ function StepRow({ config, state, isExpanded, onToggle }: StepRowProps) {
       <button
         onClick={hasDetails ? onToggle : undefined}
         className={cn(
-          "w-full flex items-center gap-3 px-5 h-10",
+          "w-full flex items-center gap-3 px-5 py-3",
           hasDetails && "cursor-pointer hover:bg-black/[0.02] transition-colors"
         )}
       >
@@ -338,7 +338,7 @@ function StepRow({ config, state, isExpanded, onToggle }: StepRowProps) {
             transition={{ duration: 0.25 }}
             className="overflow-hidden"
           >
-            <div className="px-5 pb-4 pt-1 pl-12">
+            <div className="pr-6 pb-5 pt-2 pl-12">
               <StepDetail stepKey={config.key} state={state} />
             </div>
           </motion.div>
@@ -378,11 +378,11 @@ function DecomposeDetail({ state }: { state: PipelineState }) {
     return <RunningPlaceholder text="Analyzing constraints..." />;
   }
   return (
-    <div className="flex flex-wrap gap-1.5">
+    <div className="flex flex-wrap gap-2">
       {constraints.map((c, i) => (
         <span
           key={c.id}
-          className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[12px] border"
+          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[12px] border"
           style={{
             borderColor: "rgba(0,0,0,0.06)",
             background: "rgba(255,255,255,0.7)",
@@ -394,7 +394,7 @@ function DecomposeDetail({ state }: { state: PipelineState }) {
           >
             {typeLabels[c.type] || c.type}
           </span>
-          <span className="text-[#6e6e73] truncate max-w-[200px]">{c.text}</span>
+          <span className="text-[#6e6e73] truncate max-w-[220px]">{c.text}</span>
         </span>
       ))}
     </div>
@@ -421,7 +421,7 @@ function GateDetail({ state }: { state: PipelineState }) {
   }
   const isFastPath = decision.decision === "skip";
   return (
-    <div className="space-y-2">
+    <div className="space-y-3">
       {/* Confidence bar */}
       <div className="flex items-center gap-3">
         <div
@@ -442,7 +442,7 @@ function GateDetail({ state }: { state: PipelineState }) {
           {decision.confidence}%
         </span>
       </div>
-      <p className="text-[12px] text-[#86868b]">{decision.reason}</p>
+      <p className="text-[13px] text-[#86868b] leading-relaxed">{decision.reason}</p>
     </div>
   );
 }
@@ -454,25 +454,25 @@ function CritiqueDetail({ state }: { state: PipelineState }) {
     return <RunningPlaceholder text="Analyzing for issues..." />;
   }
   return (
-    <div className="space-y-2">
+    <div className="space-y-3">
       {data.issues.map((issue, i) => {
         const sev = severityStyles[issue.severity];
         return (
-          <div key={i} className="flex items-start gap-2">
+          <div key={i} className="flex items-start gap-2.5">
             <span
               className="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded shrink-0 mt-0.5"
               style={{ color: sev.color, backgroundColor: sev.bg }}
             >
               {sev.label}
             </span>
-            <span className="text-[12px] text-[#6e6e73] leading-relaxed">
+            <span className="text-[13px] text-[#6e6e73] leading-relaxed">
               {issue.description}
             </span>
           </div>
         );
       })}
       {data.confidence !== undefined && (
-        <div className="flex items-center gap-2 pt-1">
+        <div className="flex items-center gap-2 pt-2">
           <span className="text-[12px] text-[#86868b]">Confidence:</span>
           <span className="text-[12px] font-mono font-semibold text-[#1d1d1f]">
             {data.confidence}%
@@ -483,33 +483,51 @@ function CritiqueDetail({ state }: { state: PipelineState }) {
   );
 }
 
-/* ── Verify: claim verdict list ── */
+/* ── Verify: claim verdict cards ── */
 function VerifyDetail({ state }: { state: PipelineState }) {
   const results = state.verify.results;
   if (results.length === 0) {
     return <RunningPlaceholder text="Verifying claims..." />;
   }
   return (
-    <div className="space-y-2">
+    <div className="space-y-2.5">
       {results.map((result, i) => {
         const cfg = verdictConfig[result.verdict];
         const Icon = cfg.icon;
         return (
-          <div key={i} className="flex items-start gap-2">
-            <Icon
-              className="w-3.5 h-3.5 shrink-0 mt-0.5"
-              style={{ color: cfg.color }}
-            />
-            <div className="min-w-0">
-              <span
-                className="text-[10px] font-bold uppercase mr-1.5"
-                style={{ color: cfg.color }}
+          <div
+            key={i}
+            className="rounded-lg border p-3"
+            style={{
+              borderColor: "rgba(0,0,0,0.06)",
+              background: "rgba(255,255,255,0.5)",
+            }}
+          >
+            <div className="flex items-start gap-2.5">
+              <div
+                className="w-6 h-6 rounded-md flex items-center justify-center shrink-0 mt-0.5"
+                style={{ backgroundColor: `${cfg.color}12` }}
               >
-                {cfg.label}
-              </span>
-              <span className="text-[12px] text-[#6e6e73]">
-                {result.claim}
-              </span>
+                <Icon className="w-3.5 h-3.5" style={{ color: cfg.color }} />
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2 mb-1">
+                  <span
+                    className="text-[11px] font-bold uppercase"
+                    style={{ color: cfg.color }}
+                  >
+                    {cfg.label}
+                  </span>
+                </div>
+                <p className="text-[13px] text-[#1d1d1f] font-medium leading-snug">
+                  {result.claim}
+                </p>
+                {result.explanation && (
+                  <p className="text-[12px] text-[#86868b] leading-relaxed mt-1.5">
+                    {result.explanation}
+                  </p>
+                )}
+              </div>
             </div>
           </div>
         );
@@ -531,10 +549,10 @@ function RefineDetail({ state }: { state: PipelineState }) {
         </div>
       )}
       {state.refine.changes_made.length > 0 && (
-        <div className="space-y-1">
+        <div className="space-y-2">
           {state.refine.changes_made.map((change, i) => (
-            <div key={i} className="flex items-start gap-2 text-[12px] text-[#6e6e73]">
-              <CheckCircle className="w-3 h-3 shrink-0 mt-0.5 text-[#34C759]" />
+            <div key={i} className="flex items-start gap-2.5 text-[13px] text-[#6e6e73] leading-relaxed">
+              <CheckCircle className="w-3.5 h-3.5 shrink-0 mt-0.5 text-[#34C759]" />
               {change}
             </div>
           ))}
@@ -574,9 +592,9 @@ function TrustDetail({ state }: { state: PipelineState }) {
 /* ── Running placeholder ── */
 function RunningPlaceholder({ text }: { text: string }) {
   return (
-    <div className="flex items-center gap-2 py-1">
-      <Loader2 className="w-3 h-3 animate-spin text-[#86868b]" />
-      <span className="text-[12px] text-[#86868b]">{text}</span>
+    <div className="flex items-center gap-2.5 py-2">
+      <Loader2 className="w-3.5 h-3.5 animate-spin text-[#86868b]" />
+      <span className="text-[13px] text-[#86868b]">{text}</span>
     </div>
   );
 }
