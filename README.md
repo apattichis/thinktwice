@@ -1,11 +1,15 @@
 <p align="center">
-  <img src="pictures/thinktwice-pipeline.png" alt="ThinkTwice" width="120">
+  <img src="pictures/thinktwice-pipeline.png" alt="ThinkTwice" width="800">
 </p>
 
 <h1 align="center">ThinkTwice</h1>
 
 <p align="center">
   <strong>A self-correcting AI pipeline that decomposes constraints, iteratively verifies against live sources, and deterministically enforces what LLMs can't.</strong>
+</p>
+
+<p align="center">
+  <code>85.0% IFEval accuracy</code> &mdash; <code>+13.3pp over single-shot</code> &mdash; <code>p = 0.0014</code>
 </p>
 
 ---

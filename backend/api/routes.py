@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter, Query, Request
 from fastapi.responses import JSONResponse
-from sse_starlette.sse import EventSourceResponse
+from starlette.responses import StreamingResponse
 
 from models.schemas import ThinkRequest, ExamplesResponse
 
@@ -44,7 +44,7 @@ async def think(
         ):
             yield event
 
-    return EventSourceResponse(event_generator())
+    return StreamingResponse(event_generator(), media_type="text/event-stream")
 
 
 @router.post("/think/single-shot")
