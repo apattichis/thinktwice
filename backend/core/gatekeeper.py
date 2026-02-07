@@ -159,11 +159,14 @@ class Gatekeeper:
             raw_confidence = result.get("gate_confidence", 0)
             failing = result.get("failing_constraints", [])
 
-            # Enforce our own gate logic
+            # Enforce our own gate logic with deterministic confidence
             if sub_questions:
                 passed_count = sum(1 for sq in sub_questions if sq.passed)
                 total_count = len(sub_questions)
                 pass_rate = passed_count / total_count if total_count > 0 else 0
+
+                # Deterministic confidence from actual pass rate
+                raw_confidence = int(pass_rate * 100)
 
                 high_priority_ids = {c.id for c in constraints if c.priority == ConstraintPriority.HIGH}
                 high_failed = any(
