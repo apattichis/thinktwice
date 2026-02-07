@@ -148,6 +148,13 @@ def _check_structural_override(
             if not draft_analysis["has_comma"] and refined_analysis["has_comma"]:
                 return "commas introduced"
 
+    # Check: bullet count decreased when constraints mention bullets
+    draft_bullets = draft_analysis.get("bullet_count", 0)
+    refined_bullets = refined_analysis.get("bullet_count", 0)
+    if draft_bullets > 0 and refined_bullets < draft_bullets:
+        if any(kw in all_constraints for kw in ["bullet", "list item", "list point"]):
+            return "bullet count decreased"
+
     return None
 
 
