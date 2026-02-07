@@ -66,7 +66,7 @@ export function ExamplePrompts({ onSelect }: ExamplePromptsProps) {
             <p
               className="group-hover:text-text-primary transition-colors"
               style={{
-                fontSize: "14px",
+                fontSize: "14.5px",
                 fontWeight: 560,
                 color: "#1d1d1f",
                 marginBottom: "5px",
@@ -78,7 +78,7 @@ export function ExamplePrompts({ onSelect }: ExamplePromptsProps) {
             <p
               className="group-hover:text-text-secondary transition-colors"
               style={{
-                fontSize: "12.5px",
+                fontSize: "13px",
                 color: "#aeaeb2",
                 lineHeight: 1.45,
               }}
