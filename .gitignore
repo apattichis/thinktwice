@@ -9,3 +9,6 @@ venv/
 .DS_Store
 .claude/
 screenshot*.png
+eval/.cache/
+_tmp_*
+nul
