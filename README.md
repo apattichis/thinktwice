@@ -288,4 +288,4 @@ Full analysis with charts, per-type breakdowns, and discussion: [`results/ifeval
 
 ## License
 
-MIT
+[MIT](LICENSE)
