@@ -91,14 +91,14 @@ export default function Home() {
                   style={{
                     fontSize: "18px",
                     color: "#6e6e73",
-                    maxWidth: "500px",
+                    maxWidth: "620px",
                     margin: "0 auto",
                     lineHeight: 1.6,
                   }}
                 >
-                  An AI agent that drafts, self-critiques, fact-checks, and
-                  refines its own answers. Watch the reasoning unfold in
-                  real time.
+                  An AI agent that drafts, self-critiques, fact-checks, and refines its own answers.
+                  <br />
+                  Watch the reasoning unfold in real time.
                 </p>
               </motion.div>
             )}
