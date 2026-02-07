@@ -182,7 +182,7 @@ def _verify_number_paragraphs(response: str, kwargs: dict) -> bool:
 @_register("length_constraints:nth_paragraph_first_word")
 def _verify_nth_paragraph_first_word(response: str, kwargs: dict) -> bool:
     """Check that the Nth paragraph starts with a specific word."""
-    nth = kwargs.get("num_paragraphs", kwargs.get("nth_paragraph", 1))
+    nth = kwargs.get("nth_paragraph", kwargs.get("num_paragraphs", 1))
     first_word = kwargs.get("first_word", "").lower()
     paragraphs = [p.strip() for p in re.split(r'\n\s*\n', response.strip()) if p.strip()]
     if nth > len(paragraphs) or nth < 1:
