@@ -24,6 +24,7 @@ from core.gatekeeper import Gatekeeper
 from core.convergence import ConvergenceChecker
 from core.truster import Truster
 from core.schemas import ConvergenceDecision
+from core.structural_enforcer import enforce as enforce_structure
 
 logger = logging.getLogger(__name__)
 
@@ -396,6 +397,16 @@ class ThinkTwicePipeline:
             "blended": trust_result.blended,
             "blend_notes": trust_result.blend_notes,
         })
+
+        # Structural enforcement: programmatic fixes for structural constraints
+        # that LLMs cannot reliably self-enforce (paragraph counts, etc.)
+        enforced_output = enforce_structure(
+            trust_result.final_output,
+            decompose_result.constraints,
+            request.input,
+        )
+        if enforced_output != trust_result.final_output:
+            trust_result.final_output = enforced_output
 
         # Final metrics
         total_duration = int((time.monotonic() - pipeline_start) * 1000)
