@@ -47,7 +47,7 @@ export function ExamplePrompts({ onSelect }: ExamplePromptsProps) {
       >
         Or try one of these examples
       </p>
-      <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+      <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap: "12px" }}>
         {examples.map((item, i) => (
           <motion.button
             key={item.label}

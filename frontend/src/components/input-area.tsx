@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Loader2, ArrowRight } from "lucide-react";
 
@@ -14,9 +14,21 @@ export function InputArea({ onSubmit, isLoading, initialValue = "" }: InputAreaP
   const [input, setInput] = useState(initialValue);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
+  const autoResize = useCallback(() => {
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${el.scrollHeight}px`;
+  }, []);
+
   useEffect(() => {
     if (initialValue) setInput(initialValue);
   }, [initialValue]);
+
+  // Auto-resize when input changes
+  useEffect(() => {
+    autoResize();
+  }, [input, autoResize]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -56,7 +68,7 @@ export function InputArea({ onSubmit, isLoading, initialValue = "" }: InputAreaP
               onKeyDown={handleKeyDown}
               placeholder="Ask a question, paste a claim, or enter a URL..."
               disabled={isLoading}
-              rows={3}
+              rows={1}
               style={{
                 width: "100%",
                 background: "transparent",
@@ -68,6 +80,8 @@ export function InputArea({ onSubmit, isLoading, initialValue = "" }: InputAreaP
                 resize: "none",
                 opacity: isLoading ? 0.5 : 1,
                 fontFamily: "inherit",
+                minHeight: "76px",
+                overflow: "hidden",
               }}
             />
 
