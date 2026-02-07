@@ -28,12 +28,12 @@ interface ExamplePromptsProps {
 }
 
 export function ExamplePrompts({ mode, onSelect }: ExamplePromptsProps) {
-  const items = examples[mode];
+  const items = examples[mode].slice(0, 4);
 
   if (!items.length) return null;
 
   return (
-    <div className="w-full max-w-2xl mx-auto">
+    <div className="w-full max-w-2xl mx-auto mt-6">
       <p className="text-[13px] text-text-quaternary mb-3 text-center">
         Or try one of these examples
       </p>

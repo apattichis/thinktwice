@@ -1,8 +1,15 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { PenLine, MessageSquareWarning, ShieldCheck, Sparkles } from "lucide-react";
+import {
+  PenLine,
+  MessageSquareWarning,
+  ShieldCheck,
+  Sparkles,
+  X,
+  Play,
+} from "lucide-react";
 
 const steps = [
   {
@@ -39,295 +46,467 @@ const steps = [
   },
 ];
 
-const CYCLE_MS = 3000;
+const CYCLE_MS = 3500;
 
-export function HowItWorks() {
+interface HowItWorksProps {
+  open: boolean;
+  onClose: () => void;
+}
+
+export function HowItWorks({ open, onClose }: HowItWorksProps) {
   const [active, setActive] = useState(0);
+  const [paused, setPaused] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const advance = useCallback(() => {
-    setActive((prev) => (prev + 1) % steps.length);
+  const clearTimer = useCallback(() => {
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
   }, []);
 
-  useEffect(() => {
-    const id = setInterval(advance, CYCLE_MS);
-    return () => clearInterval(id);
-  }, [advance]);
+  const startTimer = useCallback(() => {
+    clearTimer();
+    timerRef.current = setInterval(() => {
+      setActive((prev) => (prev + 1) % steps.length);
+    }, CYCLE_MS);
+  }, [clearTimer]);
 
-  const handleClick = (i: number) => setActive(i);
+  // Start/stop auto-cycle based on open + paused state
+  useEffect(() => {
+    if (open && !paused) {
+      startTimer();
+    } else {
+      clearTimer();
+    }
+    return clearTimer;
+  }, [open, paused, startTimer, clearTimer]);
+
+  // Reset when opening
+  useEffect(() => {
+    if (open) {
+      setActive(0);
+      setPaused(false);
+    }
+  }, [open]);
+
+  const handleStepClick = (i: number) => {
+    setActive(i);
+    setPaused(true);
+    clearTimer();
+  };
+
+  const handleResume = () => {
+    setPaused(false);
+  };
+
+  // Close on Escape
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open, onClose]);
 
   return (
-    <div className="w-full max-w-2xl mx-auto">
-      {/* Pipeline track */}
-      <div
-        style={{
-          borderRadius: "20px",
-          background: "rgba(255, 255, 255, 0.65)",
-          backdropFilter: "blur(40px) saturate(200%)",
-          WebkitBackdropFilter: "blur(40px) saturate(200%)",
-          border: "1px solid rgba(0,0,0,0.06)",
-          boxShadow:
-            "0 4px 24px rgba(0,0,0,0.04), 0 1px 3px rgba(0,0,0,0.06)",
-          padding: "32px 28px 28px",
-        }}
-      >
-        {/* Step nodes + beam */}
-        <div
+    <AnimatePresence>
+      {open && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.25 }}
+          onClick={onClose}
           style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 100,
             display: "flex",
             alignItems: "center",
-            position: "relative",
-            marginBottom: "28px",
+            justifyContent: "center",
+            padding: "24px",
+            background: "rgba(0, 0, 0, 0.4)",
+            backdropFilter: "blur(8px)",
+            WebkitBackdropFilter: "blur(8px)",
           }}
         >
-          {/* Background track */}
-          <div
-            style={{
-              position: "absolute",
-              top: "50%",
-              left: "20px",
-              right: "20px",
-              height: "3px",
-              background: "rgba(0,0,0,0.06)",
-              borderRadius: "2px",
-              transform: "translateY(-50%)",
-            }}
-          />
-
-          {/* Progress beam */}
+          {/* Modal container */}
           <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: 12 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 12 }}
+            transition={{ type: "spring", bounce: 0.15, duration: 0.5 }}
+            onClick={(e) => e.stopPropagation()}
             style={{
-              position: "absolute",
-              top: "50%",
-              left: "20px",
-              height: "3px",
-              borderRadius: "2px",
-              transform: "translateY(-50%)",
-              background: `linear-gradient(90deg, ${steps[0].color}, ${steps[active].color})`,
+              width: "100%",
+              maxWidth: "560px",
+              borderRadius: "24px",
+              background: "rgba(255, 255, 255, 0.65)",
+              backdropFilter: "blur(40px) saturate(200%)",
+              WebkitBackdropFilter: "blur(40px) saturate(200%)",
+              border: "1px solid rgba(0, 0, 0, 0.06)",
+              boxShadow:
+                "0 24px 80px rgba(0, 0, 0, 0.12), 0 4px 24px rgba(0, 0, 0, 0.06), 0 1px 3px rgba(0, 0, 0, 0.04)",
+              padding: "36px 32px 32px",
+              position: "relative",
             }}
-            animate={{
-              width: `${(active / (steps.length - 1)) * (100 - (40 / 640) * 100)}%`,
-            }}
-            transition={{ type: "spring", bounce: 0.15, duration: 0.6 }}
-          />
-
-          {/* Nodes */}
-          {steps.map((step, i) => {
-            const isActive = i === active;
-            const isPast = i < active;
-            const isFuture = i > active;
-
-            return (
-              <button
-                key={step.label}
-                onClick={() => handleClick(i)}
-                style={{
-                  flex: 1,
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  gap: "10px",
-                  position: "relative",
-                  zIndex: 2,
-                  background: "none",
-                  border: "none",
-                  cursor: "pointer",
-                  padding: 0,
-                }}
-              >
-                {/* Node dot */}
-                <div style={{ position: "relative" }}>
-                  {/* Glow ring */}
-                  {isActive && (
-                    <motion.div
-                      style={{
-                        position: "absolute",
-                        inset: "-6px",
-                        borderRadius: "50%",
-                        background: step.color,
-                        opacity: 0.15,
-                      }}
-                      animate={{
-                        scale: [1, 1.3, 1],
-                        opacity: [0.15, 0.08, 0.15],
-                      }}
-                      transition={{ duration: 2, repeat: Infinity }}
-                    />
-                  )}
-                  <motion.div
-                    style={{
-                      width: "40px",
-                      height: "40px",
-                      borderRadius: "50%",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      border: "2px solid",
-                      borderColor: isFuture
-                        ? "rgba(0,0,0,0.1)"
-                        : step.color,
-                      background: isActive || isPast ? step.color : "white",
-                      boxShadow: isActive
-                        ? `0 4px 16px ${step.color}40`
-                        : "none",
-                    }}
-                    animate={{
-                      scale: isActive ? [1, 1.06, 1] : 1,
-                    }}
-                    transition={
-                      isActive
-                        ? { duration: 2, repeat: Infinity }
-                        : { type: "spring", bounce: 0.15, duration: 0.4 }
-                    }
-                  >
-                    <step.icon
-                      style={{
-                        width: "18px",
-                        height: "18px",
-                        color:
-                          isActive || isPast
-                            ? "white"
-                            : isFuture
-                            ? "rgba(0,0,0,0.2)"
-                            : step.color,
-                      }}
-                    />
-                  </motion.div>
-                </div>
-
-                {/* Label */}
-                <motion.span
-                  style={{
-                    fontSize: "13px",
-                    fontWeight: isActive ? 600 : 500,
-                    color: isActive
-                      ? step.color
-                      : isFuture
-                      ? "#aeaeb2"
-                      : "#1d1d1f",
-                    transition: "color 0.2s",
-                  }}
-                >
-                  {step.label}
-                </motion.span>
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Description card */}
-        <div
-          style={{
-            borderRadius: "14px",
-            background: "rgba(0,0,0,0.03)",
-            padding: "20px 24px",
-            minHeight: "88px",
-            position: "relative",
-            overflow: "hidden",
-          }}
-        >
-          {/* Accent bar */}
-          <motion.div
-            style={{
-              position: "absolute",
-              top: 0,
-              left: 0,
-              width: "3px",
-              height: "100%",
-              borderRadius: "0 2px 2px 0",
-            }}
-            animate={{ background: steps[active].color }}
-            transition={{ duration: 0.3 }}
-          />
-
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={active}
-              initial={{ opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -6 }}
-              transition={{ duration: 0.25 }}
+          >
+            {/* Close button */}
+            <button
+              onClick={onClose}
+              style={{
+                position: "absolute",
+                top: "16px",
+                right: "16px",
+                width: "32px",
+                height: "32px",
+                borderRadius: "50%",
+                border: "none",
+                background: "rgba(0, 0, 0, 0.06)",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                transition: "background 0.2s",
+              }}
+              className="hover:bg-bg-hover"
             >
-              <div
+              <X style={{ width: "16px", height: "16px", color: "#6e6e73" }} />
+            </button>
+
+            {/* Title */}
+            <div style={{ textAlign: "center", marginBottom: "28px" }}>
+              <h2
                 style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "8px",
-                  marginBottom: "6px",
-                }}
-              >
-                <motion.div
-                  initial={{ rotate: -15, scale: 0.8 }}
-                  animate={{ rotate: 0, scale: 1 }}
-                  transition={{ type: "spring", bounce: 0.3, duration: 0.4 }}
-                >
-                  {(() => {
-                    const Icon = steps[active].icon;
-                    return (
-                      <Icon
-                        style={{
-                          width: "15px",
-                          height: "15px",
-                          color: steps[active].color,
-                        }}
-                      />
-                    );
-                  })()}
-                </motion.div>
-                <span
-                  style={{
-                    fontSize: "14px",
-                    fontWeight: 600,
-                    color: "#1d1d1f",
-                  }}
-                >
-                  {steps[active].headline}
-                </span>
-              </div>
-              <p
-                style={{
-                  fontSize: "13px",
-                  lineHeight: 1.55,
-                  color: "#6e6e73",
+                  fontSize: "20px",
+                  fontWeight: 650,
+                  letterSpacing: "-0.02em",
+                  color: "#1d1d1f",
                   margin: 0,
                 }}
               >
-                {steps[active].description}
+                How it Works
+              </h2>
+              <p
+                style={{
+                  fontSize: "13px",
+                  color: "#86868b",
+                  marginTop: "6px",
+                }}
+              >
+                Four steps to a verified answer
               </p>
-            </motion.div>
-          </AnimatePresence>
-        </div>
+            </div>
 
-        {/* Step dots indicator */}
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "center",
-            gap: "6px",
-            marginTop: "16px",
-          }}
-        >
-          {steps.map((step, i) => (
-            <motion.button
-              key={step.label}
-              onClick={() => handleClick(i)}
+            {/* Pipeline track */}
+            <div
               style={{
-                width: i === active ? "20px" : "6px",
-                height: "6px",
-                borderRadius: "3px",
-                background: i === active ? step.color : "rgba(0,0,0,0.12)",
-                border: "none",
-                cursor: "pointer",
-                padding: 0,
+                display: "flex",
+                alignItems: "center",
+                position: "relative",
+                marginBottom: "28px",
               }}
-              animate={{
-                width: i === active ? 20 : 6,
-                background: i === active ? step.color : "rgba(0,0,0,0.12)",
+            >
+              {/* Background track */}
+              <div
+                style={{
+                  position: "absolute",
+                  top: "50%",
+                  left: "24px",
+                  right: "24px",
+                  height: "3px",
+                  background: "rgba(0, 0, 0, 0.06)",
+                  borderRadius: "2px",
+                  transform: "translateY(-50%)",
+                }}
+              />
+
+              {/* Progress beam */}
+              <motion.div
+                style={{
+                  position: "absolute",
+                  top: "50%",
+                  left: "24px",
+                  height: "3px",
+                  borderRadius: "2px",
+                  transform: "translateY(-50%)",
+                  background: `linear-gradient(90deg, ${steps[0].color}, ${steps[active].color})`,
+                }}
+                animate={{
+                  width: `${(active / (steps.length - 1)) * (100 - (48 / 496) * 100)}%`,
+                }}
+                transition={{ type: "spring", bounce: 0.15, duration: 0.5 }}
+              />
+
+              {/* Nodes */}
+              {steps.map((step, i) => {
+                const isActive = i === active;
+                const isPast = i < active;
+                const isFuture = i > active;
+
+                return (
+                  <button
+                    key={step.label}
+                    onClick={() => handleStepClick(i)}
+                    style={{
+                      flex: 1,
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      gap: "10px",
+                      position: "relative",
+                      zIndex: 2,
+                      background: "none",
+                      border: "none",
+                      cursor: "pointer",
+                      padding: 0,
+                    }}
+                  >
+                    {/* Node circle */}
+                    <div style={{ position: "relative" }}>
+                      {/* Glow ring */}
+                      {isActive && (
+                        <motion.div
+                          style={{
+                            position: "absolute",
+                            inset: "-7px",
+                            borderRadius: "50%",
+                            background: step.color,
+                            opacity: 0.15,
+                          }}
+                          animate={{
+                            scale: [1, 1.3, 1],
+                            opacity: [0.15, 0.08, 0.15],
+                          }}
+                          transition={{ duration: 2, repeat: Infinity }}
+                        />
+                      )}
+                      <motion.div
+                        style={{
+                          width: "48px",
+                          height: "48px",
+                          borderRadius: "50%",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          border: "2px solid",
+                          borderColor: isFuture
+                            ? "rgba(0, 0, 0, 0.1)"
+                            : step.color,
+                          background:
+                            isActive || isPast ? step.color : "white",
+                          boxShadow: isActive
+                            ? `0 4px 16px ${step.color}40`
+                            : "none",
+                        }}
+                        animate={{
+                          scale: isActive ? [1, 1.06, 1] : 1,
+                        }}
+                        whileHover={
+                          !isActive
+                            ? { scale: 1.1, boxShadow: "0 4px 12px rgba(0,0,0,0.08)" }
+                            : undefined
+                        }
+                        transition={
+                          isActive
+                            ? { duration: 2, repeat: Infinity }
+                            : { type: "spring", bounce: 0.15, duration: 0.4 }
+                        }
+                      >
+                        <step.icon
+                          style={{
+                            width: "20px",
+                            height: "20px",
+                            color:
+                              isActive || isPast
+                                ? "white"
+                                : isFuture
+                                ? "rgba(0, 0, 0, 0.2)"
+                                : step.color,
+                          }}
+                        />
+                      </motion.div>
+                    </div>
+
+                    {/* Label */}
+                    <motion.span
+                      style={{
+                        fontSize: "13px",
+                        fontWeight: isActive ? 600 : 500,
+                        color: isActive
+                          ? step.color
+                          : isFuture
+                          ? "#aeaeb2"
+                          : "#1d1d1f",
+                        transition: "color 0.2s",
+                      }}
+                    >
+                      {step.label}
+                    </motion.span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Description card */}
+            <div
+              style={{
+                borderRadius: "16px",
+                background: "rgba(0, 0, 0, 0.03)",
+                padding: "24px 28px",
+                minHeight: "96px",
+                position: "relative",
+                overflow: "hidden",
               }}
-              transition={{ type: "spring", bounce: 0.15, duration: 0.4 }}
-            />
-          ))}
-        </div>
-      </div>
-    </div>
+            >
+              {/* Accent bar */}
+              <motion.div
+                style={{
+                  position: "absolute",
+                  top: 0,
+                  left: 0,
+                  width: "3px",
+                  height: "100%",
+                  borderRadius: "0 2px 2px 0",
+                }}
+                animate={{ background: steps[active].color }}
+                transition={{ duration: 0.3 }}
+              />
+
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={active}
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -6 }}
+                  transition={{ duration: 0.25 }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "8px",
+                      marginBottom: "8px",
+                    }}
+                  >
+                    <motion.div
+                      initial={{ rotate: -15, scale: 0.8 }}
+                      animate={{ rotate: 0, scale: 1 }}
+                      transition={{
+                        type: "spring",
+                        bounce: 0.3,
+                        duration: 0.4,
+                      }}
+                    >
+                      {(() => {
+                        const Icon = steps[active].icon;
+                        return (
+                          <Icon
+                            style={{
+                              width: "15px",
+                              height: "15px",
+                              color: steps[active].color,
+                            }}
+                          />
+                        );
+                      })()}
+                    </motion.div>
+                    <span
+                      style={{
+                        fontSize: "14px",
+                        fontWeight: 600,
+                        color: "#1d1d1f",
+                      }}
+                    >
+                      {steps[active].headline}
+                    </span>
+                  </div>
+                  <p
+                    style={{
+                      fontSize: "13px",
+                      lineHeight: 1.6,
+                      color: "#6e6e73",
+                      margin: 0,
+                    }}
+                  >
+                    {steps[active].description}
+                  </p>
+                </motion.div>
+              </AnimatePresence>
+            </div>
+
+            {/* Step dots + Resume pill */}
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "6px",
+                marginTop: "20px",
+                position: "relative",
+              }}
+            >
+              {steps.map((step, i) => (
+                <motion.button
+                  key={step.label}
+                  onClick={() => handleStepClick(i)}
+                  style={{
+                    width: i === active ? "20px" : "6px",
+                    height: "6px",
+                    borderRadius: "3px",
+                    background:
+                      i === active ? step.color : "rgba(0, 0, 0, 0.12)",
+                    border: "none",
+                    cursor: "pointer",
+                    padding: 0,
+                  }}
+                  animate={{
+                    width: i === active ? 20 : 6,
+                    background:
+                      i === active ? step.color : "rgba(0, 0, 0, 0.12)",
+                  }}
+                  transition={{ type: "spring", bounce: 0.15, duration: 0.4 }}
+                />
+              ))}
+
+              {/* Resume pill */}
+              <AnimatePresence>
+                {paused && (
+                  <motion.button
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.9 }}
+                    transition={{ type: "spring", bounce: 0.15, duration: 0.35 }}
+                    onClick={handleResume}
+                    style={{
+                      position: "absolute",
+                      right: 0,
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "4px",
+                      padding: "4px 12px",
+                      borderRadius: "12px",
+                      border: "none",
+                      background: "rgba(0, 0, 0, 0.06)",
+                      cursor: "pointer",
+                      fontSize: "12px",
+                      fontWeight: 500,
+                      color: "#6e6e73",
+                      transition: "background 0.2s, color 0.2s",
+                    }}
+                    className="hover:bg-bg-hover hover:text-text-primary"
+                  >
+                    <Play style={{ width: "10px", height: "10px" }} />
+                    Resume
+                  </motion.button>
+                )}
+              </AnimatePresence>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }

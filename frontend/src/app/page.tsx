@@ -4,7 +4,8 @@ import { useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Header } from "@/components/header";
 import { InputArea } from "@/components/input-area";
-import { LandingTabs } from "@/components/landing-tabs";
+import { ExamplePrompts } from "@/components/example-prompts";
+import { HowItWorks } from "@/components/how-it-works";
 import { PipelineStepper } from "@/components/pipeline-stepper";
 import { DecomposeView } from "@/components/decompose-view";
 import { DraftView } from "@/components/draft-view";
@@ -21,6 +22,7 @@ export default function Home() {
   const { state, run } = usePipeline();
   const [inputValue, setInputValue] = useState("");
   const [activeMode, setActiveMode] = useState<InputMode>("question");
+  const [showHowItWorks, setShowHowItWorks] = useState(false);
 
   const handleSubmit = useCallback(
     (input: string, mode: InputMode) => {
@@ -39,7 +41,11 @@ export default function Home() {
 
   return (
     <div className="bg-bg-primary" style={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
-      <Header />
+      <Header
+        showHowItWorks={!hasStarted}
+        onHowItWorks={() => setShowHowItWorks(true)}
+      />
+      <HowItWorks open={showHowItWorks} onClose={() => setShowHowItWorks(false)} />
 
       <main style={{ paddingTop: "80px", paddingBottom: "64px", flex: 1 }}>
         <div style={{ maxWidth: "720px", margin: "0 auto", padding: "0 24px" }}>
@@ -113,7 +119,7 @@ export default function Home() {
             />
           </div>
 
-          {/* Examples / How it Works */}
+          {/* Examples */}
           <AnimatePresence>
             {!hasStarted && (
               <motion.div
@@ -121,7 +127,7 @@ export default function Home() {
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
               >
-                <LandingTabs mode={activeMode} onSelect={handleExampleSelect} />
+                <ExamplePrompts mode={activeMode} onSelect={handleExampleSelect} />
               </motion.div>
             )}
           </AnimatePresence>
