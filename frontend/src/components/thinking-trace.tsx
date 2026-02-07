@@ -136,10 +136,14 @@ export function ThinkingTrace({ state }: ThinkingTraceProps) {
   // Find the currently running step
   const runningStep = STEPS.find((s) => getStepStatus(state, s.key) === "running")?.key ?? null;
 
-  // Auto-expand running step, auto-collapse previous
+  // Auto-expand running step; don't collapse user-expanded steps
   useEffect(() => {
     if (runningStep && runningStep !== prevRunningRef.current) {
-      setExpandedSteps(new Set([runningStep]));
+      setExpandedSteps((prev) => {
+        const next = new Set(prev);
+        next.add(runningStep);
+        return next;
+      });
       prevRunningRef.current = runningStep;
     }
   }, [runningStep]);
