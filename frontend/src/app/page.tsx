@@ -4,7 +4,7 @@ import { useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Header } from "@/components/header";
 import { InputArea } from "@/components/input-area";
-import { ExamplePrompts } from "@/components/example-prompts";
+import { LandingTabs } from "@/components/landing-tabs";
 import { PipelineStepper } from "@/components/pipeline-stepper";
 import { DecomposeView } from "@/components/decompose-view";
 import { DraftView } from "@/components/draft-view";
@@ -113,7 +113,7 @@ export default function Home() {
             />
           </div>
 
-          {/* Examples */}
+          {/* Examples / How it Works */}
           <AnimatePresence>
             {!hasStarted && (
               <motion.div
@@ -121,7 +121,7 @@ export default function Home() {
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
               >
-                <ExamplePrompts mode={activeMode} onSelect={handleExampleSelect} />
+                <LandingTabs mode={activeMode} onSelect={handleExampleSelect} />
               </motion.div>
             )}
           </AnimatePresence>

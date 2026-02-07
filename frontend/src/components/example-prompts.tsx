@@ -2,8 +2,25 @@
 
 import { motion } from "framer-motion";
 import { ArrowUpRight } from "lucide-react";
-import { useExamples } from "@/hooks/use-examples";
 import type { InputMode } from "@/types";
+
+const examples: Record<InputMode, string[]> = {
+  question: [
+    "Is intermittent fasting safe for people with diabetes?",
+    "Explain how mRNA vaccines work. Are there long-term risks?",
+    "What causes the northern lights and how far south can they be seen?",
+    "How does blockchain technology actually work?",
+    "What are the real environmental impacts of electric vehicles?",
+  ],
+  claim: [
+    "Humans only use 10% of their brain",
+    "The Great Wall of China is visible from space",
+    "Coffee stunts your growth",
+    "Napoleon Bonaparte was unusually short",
+    "Goldfish have a 3-second memory",
+  ],
+  url: [],
+};
 
 interface ExamplePromptsProps {
   mode: InputMode;
@@ -11,28 +28,19 @@ interface ExamplePromptsProps {
 }
 
 export function ExamplePrompts({ mode, onSelect }: ExamplePromptsProps) {
-  const { examples, loading } = useExamples();
-
-  if (loading || !examples) return null;
-
-  const items =
-    mode === "question"
-      ? examples.questions
-      : mode === "claim"
-      ? examples.claims
-      : examples.urls;
+  const items = examples[mode];
 
   if (!items.length) return null;
 
   return (
-    <div className="w-full max-w-2xl mx-auto mt-6">
+    <div className="w-full max-w-2xl mx-auto">
       <p className="text-[13px] text-text-quaternary mb-3 text-center">
         Or try one of these examples
       </p>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-        {items.slice(0, 4).map((item, i) => (
+        {items.map((item, i) => (
           <motion.button
-            key={i}
+            key={item}
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.04, duration: 0.3 }}
