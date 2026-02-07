@@ -66,7 +66,7 @@ export default function Home() {
                     src="/thinktwice-pipeline.png"
                     alt="ThinkTwice Pipeline"
                     style={{
-                      height: "56px",
+                      height: "96px",
                       objectFit: "contain",
                       margin: "0 auto",
                     }}
