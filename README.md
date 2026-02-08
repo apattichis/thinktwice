@@ -17,7 +17,7 @@
 ---
 ## How It Works
 
-ThinkTwice wraps any LLM call in an 8-phase self-correction loop. Instead of hoping the model gets it right on the first try, it decomposes the request into atomic constraints, drafts a response, gates easy prompts through a fast path, and iteratively critiques, verifies, and refines until constraints converge — then deterministically enforces structural requirements that LLMs fundamentally cannot self-enforce (counting paragraphs, placing specific first words, formatting responses).
+ThinkTwice wraps any LLM call in an 8-phase self-correction loop. Instead of hoping the model gets it right on the first try, it decomposes the request into atomic constraints, drafts a response, gates easy prompts through a fast path, and iteratively critiques, verifies, and refines until constraints converge, then deterministically enforces structural requirements that LLMs fundamentally cannot self-enforce (counting paragraphs, placing specific first words, formatting responses).
 
 ```mermaid
 flowchart LR
@@ -60,10 +60,10 @@ flowchart LR
 | **Gate** | Decides if draft is good enough to skip refinement | Programmatic structural analysis + LLM sub-question evaluation per constraint. Skips if confidence >= 85 and all high-priority constraints pass |
 | **Critique** | Evaluates draft against every constraint | Per-constraint verdicts (satisfied / partially / violated) + extracts claims to verify |
 | **Verify** | Dual-track fact verification | Web search + independent self-verification in parallel. Fuses verdicts with confidence-weighted agreement logic |
-| **Refine** | Surgical fixes based on critique + verification | Targeted changes only — preserves what works, fixes what's violated, softens what's unclear |
+| **Refine** | Surgical fixes based on critique + verification | Targeted changes only: preserves what works, fixes what's violated, softens what's unclear |
 | **Convergence** | Lightweight re-check of constraint satisfaction | Exits loop when high-priority constraints pass and confidence exceeds threshold |
 | **Trust & Rank** | Picks best version: draft vs. refined vs. blend | Side-by-side LLM comparison with structural safety override (reverts to draft if refinement lost required structure) |
-| **Structural Enforcer** | Deterministic post-processing for counting constraints | Fixes paragraph counts, first-word placement, bullet counts, constrained response format, start phrases — pure string manipulation, no API calls |
+| **Structural Enforcer** | Deterministic post-processing for counting constraints | Fixes paragraph counts, first-word placement, bullet counts, constrained response format, start phrases: pure string manipulation, no API calls |
 
 </details>
 
@@ -127,7 +127,7 @@ flowchart TB
 
 ## Evaluation Results
 
-Evaluated on **IFEval** (Instruction-Following Evaluation) — 120 stratified samples from 541, covering all 25 instruction types. Model: Claude 3.5 Haiku.
+Evaluated on **IFEval** (Instruction-Following Evaluation): 120 stratified samples from 541, covering all 25 instruction types. Model: Claude 3.5 Haiku.
 
 | Metric | Single-Shot | ThinkTwice | Delta |
 |--------|:-----------:|:----------:|:-----:|
@@ -136,11 +136,11 @@ Evaluated on **IFEval** (Instruction-Following Evaluation) — 120 stratified sa
 | Prompt Loose Accuracy | 82.5% | 87.5% | +5.0pp |
 | Instruction Loose Accuracy | 88.0% | 91.3% | +3.3pp |
 
-**Statistically significant** at p = 0.0014 (McNemar's test). ThinkTwice recovers 19 prompts that single-shot fails, while losing only 3 — a **6.3:1 win-to-loss ratio**.
+**Statistically significant** at p = 0.0014 (McNemar's test). ThinkTwice recovers 19 prompts that single-shot fails, while losing only 3, a **6.3:1 win-to-loss ratio**.
 
 ### Where ThinkTwice Wins
 
-The biggest gains are on **countable structural constraints** — exactly the category where LLMs are weakest:
+The biggest gains are on **countable structural constraints**, exactly the category where LLMs are weakest:
 
 | Instruction Type | Single-Shot | ThinkTwice | Gain |
 |-----------------|:-----------:|:----------:|:----:|
@@ -150,7 +150,7 @@ The biggest gains are on **countable structural constraints** — exactly the ca
 | Constrained response | 86% | 100% | **+14pp** |
 | Bullet list counts | 75% | 88% | **+13pp** |
 
-Half the improvement comes from **constraint-aware drafting** (the decompose step makes the model aware of requirements it would otherwise ignore), and half from **deterministic enforcement** (fixing what LLMs fundamentally cannot do — counting).
+Half the improvement comes from **constraint-aware drafting** (the decompose step makes the model aware of requirements it would otherwise ignore), and half from **deterministic enforcement** (fixing what LLMs fundamentally cannot do: counting).
 
 <details>
 <summary><strong>Expand: Full 25-type breakdown</strong></summary>
@@ -196,9 +196,9 @@ pie title Improvement Sources (+13.3pp total)
 </p>
 </details>
 
-The **structural enforcer** fires on ~50% of all samples — meaning even with constraint-aware prompting, LLMs still can't count reliably half the time. The enforcer fixes paragraph counts, prepends missing first words, and formats constrained responses using pure string manipulation (no API calls, deterministic, cheap).
+The **structural enforcer** fires on ~50% of all samples, meaning even with constraint-aware prompting, LLMs still can't count reliably half the time. The enforcer fixes paragraph counts, prepends missing first words, and formats constrained responses using pure string manipulation (no API calls, deterministic, cheap).
 
-The **gate** correctly fast-paths 38% of prompts (91.3% accuracy on those) while sending the harder 62% through the full refinement loop (81.1% accuracy) — both well above the 71.7% single-shot baseline.
+The **gate** correctly fast-paths 38% of prompts (91.3% accuracy on those) while sending the harder 62% through the full refinement loop (81.1% accuracy), both well above the 71.7% single-shot baseline.
 
 ---
 
@@ -206,7 +206,7 @@ The **gate** correctly fast-paths 38% of prompts (91.3% accuracy on those) while
 
 ### Try it online
 
-Visit **[thinktwice-ai.vercel.app](https://thinktwice-ai.vercel.app)** — paste your [Anthropic API key](https://console.anthropic.com/) and start asking questions. Your key stays in your browser and is never stored on the server.
+Visit **[thinktwice-ai.vercel.app](https://thinktwice-ai.vercel.app)**, paste your [Anthropic API key](https://console.anthropic.com/) and start asking questions. Your key stays in your browser and is never stored on the server.
 
 ### Prerequisites
 
@@ -244,9 +244,9 @@ docker-compose up --build
 
 | Variable | Required | Default | Description |
 |----------|:--------:|:-------:|-------------|
-| `ANTHROPIC_API_KEY` | No | — | Anthropic API key (optional with BYOK) |
-| `BRAVE_SEARCH_API_KEY` | No | — | Brave Search for web verification |
-| `TAVILY_API_KEY` | No | — | Tavily API (fallback search) |
+| `ANTHROPIC_API_KEY` | No |:| Anthropic API key (optional with BYOK) |
+| `BRAVE_SEARCH_API_KEY` | No |:| Brave Search for web verification |
+| `TAVILY_API_KEY` | No |:| Tavily API (fallback search) |
 | `GATE_THRESHOLD` | No | `85` | Confidence threshold for fast-path (0-100) |
 | `MAX_ITERATIONS` | No | `3` | Max refinement loop iterations |
 | `CONVERGENCE_THRESHOLD` | No | `80` | Convergence confidence threshold |
