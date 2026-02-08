@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <strong>A self-correcting AI pipeline that decomposes constraints, iteratively verifies against live sources, and deterministically enforces what LLMs can't.</strong>
+  <strong>A self-correcting AI pipeline that decomposes constraints, iteratively verifies against live sources, and deterministically enforces what LLMs can't on their own.</strong>
 </p>
 
 <p align="center">
