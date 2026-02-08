@@ -1,13 +1,15 @@
 "use client";
 
-import { Github, Lightbulb } from "lucide-react";
+import { Github, Lightbulb, X } from "lucide-react";
 
 interface HeaderProps {
   showHowItWorks?: boolean;
   onHowItWorks?: () => void;
+  hasApiKey?: boolean;
+  onRemoveKey?: () => void;
 }
 
-export function Header({ showHowItWorks, onHowItWorks }: HeaderProps) {
+export function Header({ showHowItWorks, onHowItWorks, hasApiKey, onRemoveKey }: HeaderProps) {
   return (
     <header
       style={{
@@ -25,9 +27,12 @@ export function Header({ showHowItWorks, onHowItWorks }: HeaderProps) {
       <div style={{ maxWidth: "960px", margin: "0 auto", padding: "0 24px" }}>
         <div style={{ display: "flex", height: "52px", alignItems: "center", justifyContent: "space-between" }}>
           {/* Logo */}
-          <span style={{ fontSize: "16px", fontWeight: 600, letterSpacing: "-0.02em", color: "#1d1d1f" }}>
+          <a
+            href="/"
+            style={{ fontSize: "16px", fontWeight: 600, letterSpacing: "-0.02em", color: "#1d1d1f", textDecoration: "none" }}
+          >
             ThinkTwice
-          </span>
+          </a>
 
           {/* Nav */}
           <nav style={{ display: "flex", alignItems: "center", gap: "4px" }}>
@@ -51,6 +56,37 @@ export function Header({ showHowItWorks, onHowItWorks }: HeaderProps) {
               >
                 <Lightbulb style={{ width: "16px", height: "16px" }} />
                 <span className="hidden sm:inline">How it Works</span>
+              </button>
+            )}
+            {hasApiKey && (
+              <button
+                onClick={onRemoveKey}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "6px",
+                  padding: "6px 12px",
+                  fontSize: "14px",
+                  color: "#86868b",
+                  background: "none",
+                  border: "none",
+                  borderRadius: "8px",
+                  cursor: "pointer",
+                  transition: "all 0.2s",
+                }}
+                className="hover:bg-bg-hover hover:text-text-primary"
+              >
+                <span
+                  style={{
+                    width: "8px",
+                    height: "8px",
+                    borderRadius: "50%",
+                    background: "#34C759",
+                    flexShrink: 0,
+                  }}
+                />
+                <span className="hidden sm:inline">API Key</span>
+                <X style={{ width: "14px", height: "14px" }} />
               </button>
             )}
             <a

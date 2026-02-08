@@ -14,8 +14,8 @@ class Settings(BaseSettings):
         protected_namespaces=("settings_",),
     )
 
-    # Required - Anthropic API
-    anthropic_api_key: str
+    # Anthropic API (optional — users can provide their own key via BYOK)
+    anthropic_api_key: str | None = None
 
     # Optional - Search APIs (Brave -> Tavily -> None fallback)
     brave_search_api_key: str | None = None

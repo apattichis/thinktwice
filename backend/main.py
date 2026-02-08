@@ -17,32 +17,35 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """Application lifespan manager - initialize and cleanup resources."""
     settings = get_settings()
 
-    # Initialize services
-    llm_service = LLMService(
-        api_key=settings.anthropic_api_key,
-        model=settings.model_name,
-        max_tokens=settings.max_tokens,
-        timeout=settings.timeout,
-    )
+    # Initialize shared services (search/scraper always available)
     search_service = SearchService(
         brave_key=settings.brave_search_api_key,
         tavily_key=settings.tavily_api_key,
     )
     scraper_service = ScraperService()
 
-    # Initialize pipeline
-    pipeline = ThinkTwicePipeline(
-        llm=llm_service,
-        search=search_service,
-        scraper=scraper_service,
-        gate_threshold=settings.gate_threshold,
-        gate_min_pass_rate=settings.gate_min_pass_rate,
-        max_iterations=settings.max_iterations,
-        convergence_threshold=settings.convergence_threshold,
-        self_verify_enabled=settings.self_verify_enabled,
-        self_verify_parallel=settings.self_verify_parallel,
-        trust_blend_enabled=settings.trust_blend_enabled,
-    )
+    # Initialize LLM + pipeline only if server has its own API key
+    llm_service = None
+    pipeline = None
+    if settings.anthropic_api_key:
+        llm_service = LLMService(
+            api_key=settings.anthropic_api_key,
+            model=settings.model_name,
+            max_tokens=settings.max_tokens,
+            timeout=settings.timeout,
+        )
+        pipeline = ThinkTwicePipeline(
+            llm=llm_service,
+            search=search_service,
+            scraper=scraper_service,
+            gate_threshold=settings.gate_threshold,
+            gate_min_pass_rate=settings.gate_min_pass_rate,
+            max_iterations=settings.max_iterations,
+            convergence_threshold=settings.convergence_threshold,
+            self_verify_enabled=settings.self_verify_enabled,
+            self_verify_parallel=settings.self_verify_parallel,
+            trust_blend_enabled=settings.trust_blend_enabled,
+        )
 
     # Store in app state
     app.state.llm = llm_service
@@ -54,7 +57,8 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     yield
 
     # Cleanup
-    await llm_service.close()
+    if llm_service:
+        await llm_service.close()
     await search_service.close()
 
 

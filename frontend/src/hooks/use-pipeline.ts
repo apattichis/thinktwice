@@ -27,7 +27,7 @@ const initialState: PipelineState = {
   constraintVerdicts: [],
 };
 
-export function usePipeline() {
+export function usePipeline(apiKey: string | null) {
   const [state, setState] = useState<PipelineState>(initialState);
   const abortRef = useRef<AbortController | null>(null);
 
@@ -50,14 +50,20 @@ export function usePipeline() {
     abortRef.current = new AbortController();
 
     try {
+      const headers: Record<string, string> = { "Content-Type": "application/json" };
+      if (apiKey) headers["X-API-Key"] = apiKey;
+
       const response = await fetch(`${API_BASE}/api/think`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers,
         body: JSON.stringify({ input }),
         signal: abortRef.current.signal,
       });
 
       if (!response.ok) {
+        if (response.status === 401) {
+          throw new Error("Invalid API key. Please check your key and try again.");
+        }
         throw new Error(`HTTP ${response.status}`);
       }
 
@@ -364,7 +370,7 @@ export function usePipeline() {
         }
       }
     }
-  }, [reset]);
+  }, [reset, apiKey]);
 
   return { state, run, stop, reset };
 }
