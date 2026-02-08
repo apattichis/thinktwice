@@ -1,21 +1,17 @@
 <p align="center">
-  <img src="pictures/thinktwice-logo.png" alt="ThinkTwice" width="120">
+  <img src="pictures/thinktwice-pipeline.png" alt="ThinkTwice" width="800">
 </p>
 
-<h1 align="center">ThinkTwice</h1>
-
 <p align="center">
-  A self-correcting AI agent that drafts, critiques, verifies, and refines its own answers — with full transparency into every reasoning step.
+  <strong>A self-correcting AI pipeline that decomposes constraints, iteratively verifies against live sources, and deterministically enforces what LLMs can't.</strong>
 </p>
 
 <p align="center">
   <a href="https://thinktwice-ai.vercel.app"><strong>Try it live</strong></a>&nbsp;&nbsp;&bull;&nbsp;&nbsp;<a href="results/ifeval/ANALYSIS.md">Full evaluation</a>&nbsp;&nbsp;&bull;&nbsp;&nbsp;<a href="#quick-start">Quick start</a>
 </p>
 
-<br>
-
 <p align="center">
-  <img src="pictures/screenshot-ui.png" alt="ThinkTwice UI" width="800" style="border-radius: 12px;">
+  <img src="pictures/screenshot-ui.png" alt="ThinkTwice UI" width="800">
 </p>
 
 ---
