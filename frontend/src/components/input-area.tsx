@@ -66,7 +66,7 @@ export function InputArea({ onSubmit, isLoading, initialValue = "" }: InputAreaP
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Ask a question, paste a claim, or enter a URL..."
+              placeholder="Give me a prompt with specific instructions..."
               disabled={isLoading}
               rows={1}
               style={{
