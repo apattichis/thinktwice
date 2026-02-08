@@ -8,7 +8,7 @@ venv/
 *.egg-info/
 .DS_Store
 .claude/
-screenshot*.png
+/screenshot*.png
 eval/.cache/
 _tmp_*
 nul
