@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { DM_Sans, JetBrains_Mono } from "next/font/google";
+import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 
 const dmSans = DM_Sans({
@@ -30,6 +31,7 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${dmSans.variable} ${jetbrainsMono.variable} font-sans`}>
         {children}
+        <Analytics />
       </body>
     </html>
   );
