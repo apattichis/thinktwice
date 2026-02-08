@@ -18,8 +18,8 @@ const jetbrainsMono = JetBrains_Mono({
 export const metadata: Metadata = {
   title: "ThinkTwice | Verified AI Answers",
   description:
-    "AI reasoning pipeline that drafts, self-critiques, fact-checks, and refines answers with full transparency.",
-  keywords: ["AI", "fact-checking", "verification", "reasoning"],
+    "A self-correcting AI pipeline that decomposes constraints, verifies against live sources, and enforces what LLMs can't on their own.",
+  keywords: ["AI", "fact-checking", "verification", "reasoning", "instruction-following"],
 };
 
 export default function RootLayout({
