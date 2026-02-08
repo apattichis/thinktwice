@@ -7,4 +7,4 @@ services:
     plan: free
     envVars:
       - key: FRONTEND_URL
-        value: https://frontend-kappa-lovat-63.vercel.app
+        value: https://thinktwice-ai.vercel.app
